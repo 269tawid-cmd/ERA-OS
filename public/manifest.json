@@ -1,0 +1,32 @@
+{
+  "name": "Era OS",
+  "short_name": "Era OS",
+  "description": "AI-powered cybersecurity roadmap operating system for the Hacker Era King journey",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "education"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "Open Era OS Command Center"
+    },
+    {
+      "name": "Roadmap",
+      "url": "/roadmap",
+      "description": "View your Hacker Era King roadmap"
+    }
+  ]
+}
