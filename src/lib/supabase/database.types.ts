@@ -14,6 +14,9 @@ export type CTFPlatform = 'PicoCTF' | 'HackTheBox' | 'TryHackMe' | 'CTFtime' | '
 export type CTFCategory = 'Web' | 'Crypto' | 'Forensics' | 'Pwn' | 'Misc';
 export type CTFDifficulty = 'Easy' | 'Medium' | 'Hard';
 
+export type TaskOrigin = 'generated' | 'manual';
+export type TaskCategory = 'practice' | 'learning' | 'project' | 'review' | 'ctf' | 'documentation' | 'automation';
+
 export interface TaskRow {
   id: string;
   user_id: string;
@@ -28,6 +31,11 @@ export interface TaskRow {
   completed_at: string | null;
   is_recurring: boolean;
   recurrence: Recurrence | null;
+  origin: TaskOrigin;
+  category: TaskCategory;
+  source_template: string | null;
+  generation_date: string | null;
+  generation_context: Json | null;
   created_at: string;
 }
 
@@ -69,6 +77,43 @@ export interface CtfEntryRow {
   created_at: string;
 }
 
+export interface YearlyRoadmapRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  year: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoadmapMonthRow {
+  id: string;
+  roadmap_id: string;
+  month: number;
+  title: string;
+  description: string | null;
+  focus_areas: Json;
+  deliverables: Json;
+  suggested_tasks: Json;
+  estimated_hours: number | null;
+  is_completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoadmapMilestoneRow {
+  id: string;
+  roadmap_id: string;
+  month: number;
+  name: string;
+  description: string | null;
+  xp_required: number;
+  created_at: string;
+}
+
 export interface Tables {
   tasks: {
     Row: TaskRow;
@@ -89,6 +134,21 @@ export interface Tables {
     Row: CtfEntryRow;
     Insert: Omit<CtfEntryRow, 'id' | 'created_at'>;
     Update: Partial<Omit<CtfEntryRow, 'id' | 'created_at'>>;
+  };
+  yearly_roadmaps: {
+    Row: YearlyRoadmapRow;
+    Insert: Omit<YearlyRoadmapRow, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<YearlyRoadmapRow, 'id' | 'created_at'>>;
+  };
+  roadmap_months: {
+    Row: RoadmapMonthRow;
+    Insert: Omit<RoadmapMonthRow, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<RoadmapMonthRow, 'id' | 'created_at'>>;
+  };
+  roadmap_milestones: {
+    Row: RoadmapMilestoneRow;
+    Insert: Omit<RoadmapMilestoneRow, 'id' | 'created_at'>;
+    Update: Partial<Omit<RoadmapMilestoneRow, 'id' | 'created_at'>>;
   };
 }
 

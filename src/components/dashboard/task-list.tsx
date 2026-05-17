@@ -4,23 +4,44 @@ import { useState, useTransition, useMemo } from 'react';
 import { Card, CardHeader, CardContent, Button, Badge } from '@/components/ui';
 import { PILLARS } from '@/lib/constants';
 import { updateTaskStatus, deleteTask } from '@/lib/actions/tasks';
+import { generateTodayMission } from '@/lib/actions/mission';
 import type { Task } from '@/types';
 
 interface TaskListProps {
   tasks: Task[];
+  onTasksGenerated?: (tasks: Task[]) => void;
 }
 
-export function TaskList({ tasks: initialTasks }: TaskListProps) {
+export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProps) {
   const [tasks, setTasks] = useState(initialTasks);
   const [, startTransition] = useTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const handleGenerateMission = () => {
+    setGenerating(true);
+    startTransition(async () => {
+      try {
+        const result = await generateTodayMission();
+        if (result.success && result.tasks.length > 0) {
+          setTasks(prev => [...result.tasks, ...prev]);
+          onTasksGenerated?.(result.tasks);
+        }
+      } catch (err) {
+        console.error('Error generating mission:', err);
+        alert(err instanceof Error ? err.message : 'Failed to generate mission');
+      } finally {
+        setGenerating(false);
+      }
+    });
+  };
 
   const handleStatusChange = (taskId: string, newStatus: Task['status']) => {
     setProcessingId(taskId);
     startTransition(async () => {
       try {
         await updateTaskStatus(taskId, newStatus);
-        setTasks(tasks.map(t =>
+        setTasks(prev => prev.map(t =>
           t.id === taskId
             ? { ...t, status: newStatus, completed_at: newStatus === 'done' ? new Date().toISOString() : t.completed_at }
             : t
@@ -41,7 +62,7 @@ export function TaskList({ tasks: initialTasks }: TaskListProps) {
     startTransition(async () => {
       try {
         await deleteTask(taskId);
-        setTasks(tasks.filter(t => t.id !== taskId));
+        setTasks(prev => prev.filter(t => t.id !== taskId));
       } catch (err) {
         console.error('Error deleting task:', err);
         alert(err instanceof Error ? err.message : 'Failed to update task');
@@ -63,26 +84,43 @@ export function TaskList({ tasks: initialTasks }: TaskListProps) {
     { title: 'Abandoned', tasks: abandonedTasks, key: 'abandoned' },
   ].filter(s => s.tasks.length > 0);
 
+  const generatedCount = tasks.filter(t => t.origin === 'generated').length;
+  const manualCount = tasks.filter(t => t.origin === 'manual').length;
+
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <h2 className="font-mono text-sm text-zinc-300 uppercase tracking-widest">Tasks</h2>
-        <span className="font-mono text-[10px] text-zinc-600">{tasks.length} total</span>
+    <Card className="bg-zinc-900/80 border border-zinc-700/60 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between py-4 px-5">
+        <div className="flex items-center gap-4">
+          <h2 className="font-mono text-sm font-semibold text-zinc-200 uppercase tracking-wider">Tasks</h2>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-zinc-600">Generated: {generatedCount}</span>
+            <span className="font-mono text-xs text-zinc-600">|</span>
+            <span className="font-mono text-xs text-zinc-600">Manual: {manualCount}</span>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleGenerateMission}
+          loading={generating}
+        >
+          {generating ? 'Generating...' : "Generate Mission"}
+        </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-5 pb-5">
         {tasks.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="font-mono text-xs text-zinc-600 mb-1">No tasks recorded</p>
-            <p className="font-mono text-[10px] text-zinc-700">Create tasks above to begin tracking</p>
+          <div className="text-center py-10">
+            <p className="font-mono text-sm text-zinc-500 mb-2">No tasks recorded</p>
+            <p className="font-mono text-sm text-zinc-600">Click &quot;Generate Mission&quot; to get started</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {sections.map(section => (
               <div key={section.key}>
-                <h3 className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
+                <h3 className="font-mono text-sm text-zinc-400 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-800">
                   {section.title} ({section.tasks.length})
                 </h3>
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {section.tasks.map(task => (
                     <TaskItem
                       key={task.id}
@@ -111,6 +149,7 @@ interface TaskItemProps {
 
 function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProps) {
   const pillar = PILLARS[task.pillar];
+  const originBadgeVariant = task.origin === 'generated' ? 'ai' : 'default';
 
   const nextStatus: Record<Task['status'], Task['status'] | null> = {
     todo: 'in_progress',
@@ -119,32 +158,35 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
     abandoned: null,
   };
 
-  const nextLabel = task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? 'Done' : null;
+  const nextLabel = task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? 'Complete' : null;
 
   return (
-    <div className={`group flex items-center gap-3 p-3 bg-zinc-900/40 border border-zinc-800/40 rounded-md transition-opacity ${isProcessing ? 'opacity-50' : ''}`}>
+    <div className={`flex items-center gap-3 p-4 bg-zinc-900/60 border border-zinc-800/60 rounded-lg transition-all ${isProcessing ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-zinc-200 truncate">{task.title}</span>
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span className="text-sm text-zinc-200 font-medium truncate">{task.title}</span>
           <Badge variant={task.pillar.toLowerCase() as 'hack' | 'build' | 'ai' | 'presence'}>
             {task.pillar}
           </Badge>
+          <Badge variant={originBadgeVariant}>
+            {task.origin}
+          </Badge>
         </div>
-        <div className="flex items-center gap-3 mt-1">
-          <span className="font-mono text-[10px] text-zinc-600">
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-sm text-zinc-500">
             M{task.month.toString().padStart(2, '0')}
           </span>
-          <span className="font-mono text-[10px]" style={{ color: pillar.color }}>
+          <span className="font-mono text-sm" style={{ color: pillar.color }}>
             +{task.xp_value} XP
           </span>
           {task.description && (
-            <span className="font-mono text-[10px] text-zinc-600 truncate max-w-[150px]">
+            <span className="font-mono text-sm text-zinc-600 truncate max-w-[200px] hidden sm:block">
               {task.description}
             </span>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-2 flex-shrink-0">
         {nextStatus[task.status] && nextLabel && (
           <Button
             size="sm"
@@ -158,11 +200,15 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
         )}
         <Button
           size="sm"
-          variant="ghost"
-          onClick={() => onDelete(task.id)}
+          variant="danger"
+          onClick={() => {
+            if (confirm('Delete this task?')) {
+              onDelete(task.id);
+            }
+          }}
           disabled={isProcessing}
         >
-          Del
+          Delete
         </Button>
       </div>
     </div>

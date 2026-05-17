@@ -67,6 +67,10 @@ export default async function Dashboard() {
     due_date: t.due_date ?? undefined,
     completed_at: t.completed_at ?? undefined,
     recurrence: t.recurrence ?? undefined,
+    origin: (t as { origin?: 'generated' | 'manual' }).origin ?? 'manual',
+    category: (t as { category?: 'practice' | 'learning' | 'project' | 'review' | 'ctf' | 'documentation' | 'automation' }).category ?? 'practice',
+    source_template: (t as { source_template?: string }).source_template ?? undefined,
+    generation_date: (t as { generation_date?: string }).generation_date ?? undefined,
   }));
 
   const doneTasks = taskList.filter((t) => t.status === 'done');

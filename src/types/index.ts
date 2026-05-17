@@ -1,10 +1,9 @@
 export type Pillar = 'HACK' | 'BUILD' | 'AI' | 'PRESENCE';
-
 export type Priority = 'high' | 'medium' | 'low';
-
 export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'abandoned';
-
 export type Recurrence = 'daily' | 'weekly';
+export type TaskOrigin = 'generated' | 'manual';
+export type TaskCategory = 'practice' | 'learning' | 'project' | 'review' | 'ctf' | 'documentation' | 'automation';
 
 export interface Task {
   id: string;
@@ -19,7 +18,31 @@ export interface Task {
   completed_at?: string;
   is_recurring: boolean;
   recurrence?: Recurrence;
+  origin: TaskOrigin;
+  category: TaskCategory;
+  source_template?: string;
+  generation_date?: string;
   created_at: string;
+}
+
+export function isPillar(value: string): value is Pillar {
+  return ['HACK', 'BUILD', 'AI', 'PRESENCE'].includes(value);
+}
+
+export function isPriority(value: string): value is Priority {
+  return ['high', 'medium', 'low'].includes(value);
+}
+
+export function isTaskStatus(value: string): value is TaskStatus {
+  return ['todo', 'in_progress', 'done', 'abandoned'].includes(value);
+}
+
+export function isTaskOrigin(value: string): value is TaskOrigin {
+  return ['generated', 'manual'].includes(value);
+}
+
+export function isTaskCategory(value: string): value is TaskCategory {
+  return ['practice', 'learning', 'project', 'review', 'ctf', 'documentation', 'automation'].includes(value);
 }
 
 export type CTFPlatform = 'PicoCTF' | 'HackTheBox' | 'TryHackMe' | 'CTFtime' | 'Other';
@@ -93,16 +116,4 @@ export interface AIContext {
   pendingTasks: Task[];
   streak: number;
   pillarXP: PillarXP;
-}
-
-export function isPillar(value: string): value is Pillar {
-  return ['HACK', 'BUILD', 'AI', 'PRESENCE'].includes(value);
-}
-
-export function isPriority(value: string): value is Priority {
-  return ['high', 'medium', 'low'].includes(value);
-}
-
-export function isTaskStatus(value: string): value is TaskStatus {
-  return ['todo', 'in_progress', 'done', 'abandoned'].includes(value);
 }

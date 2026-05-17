@@ -68,6 +68,11 @@ export function TaskForm({ userId, defaultMonth = 1 }: TaskFormProps) {
         due_date: null,
         completed_at: null,
         recurrence: null,
+        origin: 'manual',
+        category: 'practice',
+        source_template: null,
+        generation_date: null,
+        generation_context: null,
       };
 
       // @ts-expect-error - Supabase client type inference issue

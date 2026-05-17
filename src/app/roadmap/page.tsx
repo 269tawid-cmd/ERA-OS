@@ -5,7 +5,7 @@ import { getMonthData, getRoadmapProgress } from '@/lib/roadmap';
 import { RoadmapTimeline, JourneyStatus } from '@/components/roadmap';
 import { Card, CardHeader, CardContent } from '@/components/ui';
 import type { TaskRow, UserProgressRow, LogRow, CtfEntryRow } from '@/lib/supabase/database.types';
-import type { Task } from '@/types';
+import type { Task, TaskOrigin, TaskCategory } from '@/types';
 
 export default async function RoadmapPage() {
   const user = await getUser();
@@ -45,11 +45,24 @@ export default async function RoadmapPage() {
   const pillarXP = progress?.pillar_xp as Record<string, number> || { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 };
 
   const taskList: Task[] = (tasks || []).map((t) => ({
-    ...t,
+    id: t.id,
+    user_id: t.user_id,
+    title: t.title,
     description: t.description ?? undefined,
+    pillar: t.pillar,
+    month: t.month,
+    priority: t.priority,
+    status: t.status,
+    xp_value: t.xp_value,
     due_date: t.due_date ?? undefined,
     completed_at: t.completed_at ?? undefined,
+    is_recurring: t.is_recurring,
     recurrence: t.recurrence ?? undefined,
+    origin: (t as TaskRow & { origin: string }).origin as TaskOrigin,
+    category: (t as TaskRow & { category: string }).category as TaskCategory,
+    source_template: (t as TaskRow & { source_template: string | null }).source_template ?? undefined,
+    generation_date: (t as TaskRow & { generation_date: string | null }).generation_date ?? undefined,
+    created_at: t.created_at,
   }));
 
   const doneTasks = taskList.filter((t) => t.status === 'done');

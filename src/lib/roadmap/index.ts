@@ -1,9 +1,15 @@
 import type { MonthlyRoadmap, Pillar } from '@/types';
 import { YEAR1_ROADMAP, YEAR1_MILESTONES } from './year1';
+import { ingestYear1Roadmap } from './ingest';
+import type { YearlyRoadmapSchema } from './schema';
 
-export { YEAR1_ROADMAP, YEAR1_MILESTONES };
+export { YEAR1_ROADMAP, YEAR1_MILESTONES, ingestYear1Roadmap };
 
 export const ROADMAP_DATA: MonthlyRoadmap[] = YEAR1_ROADMAP;
+
+export function getIngestedRoadmap(): YearlyRoadmapSchema {
+  return ingestYear1Roadmap(ROADMAP_DATA);
+}
 
 export function getMonthData(month: number): MonthlyRoadmap | undefined {
   return ROADMAP_DATA.find((m) => m.month === month);

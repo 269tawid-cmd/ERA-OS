@@ -5,8 +5,8 @@ import { buildSystemPrompt, generateDeterministicResponse } from '@/lib/ai';
 import { callGeminiAPI, createGeminiError } from '@/lib/ai/gemini-client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { UserProgressRow, TaskRow } from '@/lib/supabase/database.types';
 import type { Task } from '@/types';
+import type { UserProgressRow, TaskRow } from '@/lib/supabase/database.types';
 
 const mentorRequestSchema = z.object({
   type: z.enum(['daily_tasks', 'weekly_review', 'mentor_answer', 'motivational_nudge', 'study_plan']),
@@ -86,6 +86,11 @@ export async function POST(request: Request) {
       is_recurring: t.is_recurring,
       due_date: t.due_date || undefined,
       completed_at: t.completed_at || undefined,
+      recurrence: t.recurrence || undefined,
+      origin: (t as TaskRow & { origin: string }).origin as Task['origin'],
+      category: (t as TaskRow & { category: string }).category as Task['category'],
+      source_template: (t as TaskRow & { source_template: string | null }).source_template || undefined,
+      generation_date: (t as TaskRow & { generation_date: string | null }).generation_date || undefined,
       created_at: t.created_at,
     }));
 
