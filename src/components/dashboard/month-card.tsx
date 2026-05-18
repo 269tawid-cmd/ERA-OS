@@ -13,7 +13,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
   const daysRemaining = Math.round(progress.remaining * 30);
 
   return (
-    <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
       <CardContent className="py-6 px-6">
         <div className="flex items-start justify-between mb-5">
           <div>

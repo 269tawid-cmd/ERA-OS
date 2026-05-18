@@ -148,8 +148,8 @@ input, select, textarea, button {
   background-image:
     linear-gradient(
       to bottom,
-      rgba(0,0,0,0.45),
-      rgba(0,0,0,0.65)
+      rgba(0,0,0,0.15),
+      rgba(0,0,0,0.4)
     ),
     url('/bg/cyber-room.png');
 
@@ -157,8 +157,7 @@ input, select, textarea, button {
   background-position: center;
   background-repeat: no-repeat;
 
-  filter: blur(1.5px);
-  transform: scale(1.02);
+  filter: blur(0.8px);
 
   z-index: -10;
 }

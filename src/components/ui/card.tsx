@@ -12,9 +12,9 @@ export function Card({ className, variant = 'default', glow, children, ...props 
       className={clsx(
         'rounded-lg transition-shadow duration-150',
         {
-          'bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm': variant === 'default',
-          'bg-zinc-900/90 border border-zinc-700/80 backdrop-blur-sm': variant === 'bordered',
-          'bg-zinc-900/90 border backdrop-blur-sm': variant === 'glow',
+          'bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md': variant === 'default',
+          'bg-zinc-900/60 border border-zinc-700/60 backdrop-blur-md': variant === 'bordered',
+          'bg-zinc-900/60 border backdrop-blur-md': variant === 'glow',
           'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]': glow === 'hack',
           'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]': glow === 'build',
           'border-teal-500/50 shadow-[0_0_20px_rgba(45,212,191,0.15)]': glow === 'ai',

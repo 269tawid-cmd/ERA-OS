@@ -187,7 +187,7 @@ export default async function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-          <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden">
+          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
               <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                 Learning Log
@@ -201,7 +201,7 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden">
+          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
               <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                 CTF Tracker
@@ -217,7 +217,7 @@ export default async function Dashboard() {
         </div>
 
         <div className="mb-6">
-          <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden">
+          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
               <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                 New Task

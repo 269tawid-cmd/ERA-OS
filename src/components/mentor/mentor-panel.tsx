@@ -50,7 +50,7 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
   };
 
   return (
-    <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden h-full flex flex-col">
+    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden h-full flex flex-col">
       <CardHeader className="pb-3 border-b border-zinc-800/60">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

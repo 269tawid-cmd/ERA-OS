@@ -26,7 +26,7 @@ export function QuickStats({
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Current</p>
           <p className="font-mono text-base sm:text-lg font-semibold text-zinc-100 truncate">
@@ -42,7 +42,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Streak</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
@@ -59,7 +59,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Tasks</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
@@ -76,7 +76,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-3">Pillar XP</p>
           <div className="space-y-2.5">
