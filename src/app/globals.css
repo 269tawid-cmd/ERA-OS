@@ -85,6 +85,33 @@ body {
   box-shadow: var(--glow-amber);
 }
 
+.cyber-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(39,39,42,0.4) 0%, rgba(24,24,27,0.6) 100%);
+}
+
+.cyber-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.02) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.cyber-header {
+  background: linear-gradient(180deg, rgba(24,24,27,0.8) 0%, rgba(24,24,27,0.6) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.cyber-border {
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
 .terminal-text {
   font-family: var(--font-mono);
   font-size: 0.75rem;

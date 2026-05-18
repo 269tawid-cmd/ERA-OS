@@ -34,7 +34,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 h-12 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800/60 flex items-center px-4">
+      <header className="fixed top-0 left-0 right-0 z-40 h-12 cyber-header backdrop-blur-md flex items-center px-4">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-7 h-7 relative">
             <Image
