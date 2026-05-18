@@ -68,7 +68,7 @@ export interface RoadmapPhaseConfig {
 export interface TaskGenerationContext {
   currentMonth: number;
   monthData: MonthlyRoadmapSchema;
-  pendingTasks: Array<{ id: string; pillar: Pillar; status: string }>;
+  pendingTasks: Array<{ id: string; title: string; description?: string; pillar: Pillar; status: string; priority: Priority; xp_value: number; category?: TaskCategory; source_template?: string; estimated_minutes?: number }>;
   completedTasksToday: number;
   currentStreak: number;
   pillarXP: Record<Pillar, number>;

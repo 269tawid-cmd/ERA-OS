@@ -3,6 +3,7 @@ import type {
   YearlyRoadmapSchema,
   TaskGenerationContext,
   GeneratedTask,
+  TaskCategory,
 } from './schema';
 import {
   DEFAULT_DAILY_TASK_TARGET,
@@ -12,8 +13,9 @@ import {
 
 function getDaysUntilMonthEnd(currentMonth: number): number {
   const now = new Date();
-  const monthEnd = new Date(now.getFullYear(), currentMonth, 0);
-  return Math.max(0, monthEnd.getDate() - now.getDate());
+  const monthEnd = new Date(now.getFullYear(), currentMonth + 1, 0);
+  const currentDay = now.getDate();
+  return Math.max(0, monthEnd.getDate() - currentDay);
 }
 
 function getCompletionPressure(daysRemaining: number, pendingCount: number): number {
@@ -33,6 +35,10 @@ export function generateDailyTasks(
 
   if (context.currentStreak >= 7) {
     targetCount = Math.min(MAX_TASKS_PER_DAY, targetCount + 1);
+  }
+
+  if (context.currentStreak === 0) {
+    targetCount = Math.max(MIN_TASKS_PER_DAY, targetCount - 1);
   }
 
   const daysRemaining = getDaysUntilMonthEnd(context.currentMonth);
@@ -72,24 +78,22 @@ export function generateDailyTasks(
       .filter(t => t.status === 'todo')
       .slice(0, targetCount - tasks.length);
     
-    for (let i = 0; i < pendingToContinue.length; i++) {
+    for (const pending of pendingToContinue) {
       if (tasks.length >= targetCount) break;
-      const template = monthSchema.task_templates
-        .find(t => !existingTasks.some(e => e.title === t.title));
+      const isDuplicate = existingTasks.some(e => e.title === pending.title);
+      if (isDuplicate) continue;
       
-      if (template) {
-        tasks.push({
-          title: template.title,
-          description: `Continue from pending tasks. Month focus: ${monthSchema.title}`,
-          pillar: template.pillar,
-          category: template.category,
-          priority: 'medium',
-          xp_value: template.xp_value,
-          estimated_minutes: template.estimated_minutes,
-          reason: 'Continue pending work for this month',
-          source_template: template.id,
-        });
-      }
+      tasks.push({
+        title: pending.title,
+        description: pending.description || `Continue: ${pending.title}`,
+        pillar: pending.pillar,
+        category: ((pending as { category?: TaskCategory }).category || 'practice') as TaskCategory,
+        priority: pending.priority,
+        xp_value: pending.xp_value,
+        estimated_minutes: (pending as { estimated_minutes?: number }).estimated_minutes || 45,
+        reason: 'Continue your pending work',
+        source_template: (pending as { source_template?: string }).source_template || undefined,
+      });
     }
   }
   

@@ -32,22 +32,22 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
 
   if (compact) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+          <span className="font-mono text-sm text-zinc-400 uppercase tracking-wider">
             Journey
           </span>
-          <span className="font-mono text-[10px] text-zinc-500">
+          <span className="font-mono text-sm text-zinc-500">
             {achievedCount}/{totalMilestones}
           </span>
         </div>
-        <div className="h-[3px] bg-zinc-800/60 rounded-full overflow-hidden">
+        <div className="h-2 bg-zinc-800/80 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-amber-500/60 to-amber-400/40 rounded-full"
+            className="h-full bg-gradient-to-r from-amber-500/70 to-amber-400/50 rounded-full transition-all duration-300"
             style={{ width: `${completionRate}%` }}
           />
         </div>
-        <p className="font-mono text-[9px] text-zinc-600">
+        <p className="font-mono text-sm text-zinc-500">
           {roadmapProgress.percentage}% of Year 1 · {stats.currentMonth}/12 months
         </p>
       </div>
@@ -55,42 +55,42 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
   }
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="pb-2">
+    <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="pb-3 border-b border-zinc-800/60">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+          <span className="font-mono text-sm text-zinc-400 uppercase tracking-wider">
             Journey Status
           </span>
-          <span className="font-mono text-[10px] text-zinc-700">
+          <span className="font-mono text-sm text-zinc-500">
             {achievedCount}/{totalMilestones} milestones
           </span>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/40 rounded-md">
-            <p className="font-mono text-[10px] text-zinc-600 mb-1">Year Progress</p>
-            <p className="font-mono text-lg font-bold text-zinc-100">
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
+            <p className="font-mono text-sm text-zinc-500 mb-2">Year Progress</p>
+            <p className="font-mono text-3xl font-bold text-zinc-100">
               {roadmapProgress.percentage}%
             </p>
-            <p className="font-mono text-[9px] text-zinc-600">
+            <p className="font-mono text-sm text-zinc-500 mt-2">
               M{stats.currentMonth}/12 · {roadmapProgress.remaining} months left
             </p>
           </div>
-          <div className="p-2.5 bg-zinc-900/40 border border-zinc-800/40 rounded-md">
-            <p className="font-mono text-[10px] text-zinc-600 mb-1">HACK XP</p>
-            <p className="font-mono text-lg font-bold text-red-400">{stats.hackXP}</p>
-            <p className="font-mono text-[9px] text-zinc-600">
+          <div className="p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
+            <p className="font-mono text-sm text-zinc-500 mb-2">HACK XP</p>
+            <p className="font-mono text-3xl font-bold text-red-400">{stats.hackXP}</p>
+            <p className="font-mono text-sm text-zinc-500 mt-2">
               {stats.ctfSolvedCount} CTFs solved
             </p>
           </div>
         </div>
 
         <div>
-          <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
+          <p className="font-mono text-sm text-zinc-400 uppercase tracking-wider mb-3">
             Milestones
           </p>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {achievedMilestones.length > 0 &&
               achievedMilestones.slice(0, 3).map((m) => (
                 <ProgressMilestone

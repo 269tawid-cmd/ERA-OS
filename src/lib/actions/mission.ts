@@ -100,12 +100,32 @@ export async function generateTodayMission(): Promise<GenerateMissionResult> {
     created_at: t.created_at,
   }));
   
+  const allTasksForMonth = (existingTasks || []).map(t => ({
+    id: t.id,
+    title: t.title,
+    description: t.description || undefined,
+    pillar: t.pillar,
+    month: t.month,
+    priority: t.priority,
+    status: t.status,
+    xp_value: t.xp_value,
+    due_date: t.due_date || undefined,
+    completed_at: t.completed_at || undefined,
+    is_recurring: t.is_recurring,
+    recurrence: t.recurrence || undefined,
+    origin: t.origin,
+    category: t.category,
+    source_template: t.source_template || undefined,
+    generation_date: t.generation_date || undefined,
+    created_at: t.created_at,
+  }));
+
   const { tasks: generatedTasks, summary } = getTodayMission(
     currentMonth,
     pillarXP,
     progress.streak_current,
     pendingTasks,
-    pendingTasks,
+    allTasksForMonth,
     yearlySchema
   );
   

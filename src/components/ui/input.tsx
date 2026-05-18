@@ -21,16 +21,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={clsx(
-            'w-full px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-md text-zinc-200 text-sm placeholder:text-zinc-600 min-h-[44px]',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] focus:border-zinc-600 focus:ring-zinc-500/30 transition-colors duration-150',
+            'w-full px-4 py-3 bg-zinc-950 border border-zinc-700/80 rounded-lg text-zinc-200 text-base placeholder:text-zinc-500 transition-all duration-150',
+            'focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] focus:border-zinc-600 focus:ring-zinc-500/30',
             error
               ? 'border-red-500/60 focus:ring-red-500/30'
-              : 'hover:border-zinc-700',
+              : 'hover:border-zinc-600',
             className
           )}
           {...props}
         />
-        {error && <p className="mt-1.5 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       </div>
     );
   }

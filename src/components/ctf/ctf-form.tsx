@@ -11,6 +11,7 @@ export function CTFForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState<CTFPlatform>('PicoCTF');
   const [category, setCategory] = useState<CTFCategory>('Web');
@@ -39,7 +40,10 @@ export function CTFForm() {
       setFlagNotes('');
       setSolved(false);
       setXpEarned('25');
+      setSuccess(true);
       router.refresh();
+
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log CTF');
     } finally {
@@ -48,10 +52,16 @@ export function CTFForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="font-mono text-xs text-red-400">{error}</p>
+        <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-lg">
+          <p className="font-mono text-sm text-red-400">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-lg">
+          <p className="font-mono text-sm text-emerald-400">CTF logged successfully</p>
         </div>
       )}
 
@@ -63,7 +73,7 @@ export function CTFForm() {
         required
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <Select
           label="Platform"
           value={platform}
@@ -78,7 +88,7 @@ export function CTFForm() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <Select
           label="Difficulty"
           value={difficulty}
@@ -89,10 +99,10 @@ export function CTFForm() {
           <button
             type="button"
             onClick={() => setSolved(!solved)}
-            className={`w-full px-3 py-2 rounded-md border text-sm font-medium transition-all duration-150 ${
+            className={`w-full px-4 py-3 rounded-lg border text-sm font-medium transition-all duration-150 ${
               solved
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : 'bg-zinc-950 border-zinc-800/80 text-zinc-500'
+                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                : 'bg-zinc-950 border-zinc-700/80 text-zinc-400 hover:border-zinc-600'
             }`}
           >
             {solved ? '[+] SOLVED' : '[ ] Solved'}
@@ -101,7 +111,7 @@ export function CTFForm() {
       </div>
 
       {solved && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <Input
             label="XP Earned"
             type="number"
@@ -120,8 +130,8 @@ export function CTFForm() {
         placeholder="flag{...} or solver notes"
       />
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading || !name.trim()} loading={loading}>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={loading || !name.trim()} loading={loading} size="lg">
           Log CTF
         </Button>
       </div>

@@ -88,14 +88,14 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
   const manualCount = tasks.filter(t => t.origin === 'manual').length;
 
   return (
-    <Card className="bg-zinc-900/80 border border-zinc-700/60 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between py-4 px-5">
+    <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-800/60">
         <div className="flex items-center gap-4">
-          <h2 className="font-mono text-sm font-semibold text-zinc-200 uppercase tracking-wider">Tasks</h2>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs text-zinc-600">Generated: {generatedCount}</span>
-            <span className="font-mono text-xs text-zinc-600">|</span>
-            <span className="font-mono text-xs text-zinc-600">Manual: {manualCount}</span>
+          <h2 className="font-mono text-base font-semibold text-zinc-200 uppercase tracking-wider">Tasks</h2>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-zinc-500">Generated: {generatedCount}</span>
+            <span className="font-mono text-sm text-zinc-700">|</span>
+            <span className="font-mono text-sm text-zinc-500">Manual: {manualCount}</span>
           </div>
         </div>
         <Button
@@ -107,20 +107,20 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
           {generating ? 'Generating...' : "Generate Mission"}
         </Button>
       </CardHeader>
-      <CardContent className="px-5 pb-5">
+      <CardContent className="px-5 py-5">
         {tasks.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="font-mono text-sm text-zinc-500 mb-2">No tasks recorded</p>
+          <div className="text-center py-12">
+            <p className="font-mono text-base text-zinc-500 mb-3">No tasks recorded</p>
             <p className="font-mono text-sm text-zinc-600">Click &quot;Generate Mission&quot; to get started</p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-6">
             {sections.map(section => (
               <div key={section.key}>
-                <h3 className="font-mono text-sm text-zinc-400 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-800">
+                <h3 className="font-mono text-sm text-zinc-400 uppercase tracking-wider mb-4 pb-3 border-b border-zinc-800/60">
                   {section.title} ({section.tasks.length})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {section.tasks.map(task => (
                     <TaskItem
                       key={task.id}
@@ -161,10 +161,10 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
   const nextLabel = task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? 'Complete' : null;
 
   return (
-    <div className={`flex items-center gap-3 p-4 bg-zinc-900/60 border border-zinc-800/60 rounded-lg transition-all ${isProcessing ? 'opacity-50' : ''}`}>
+    <div className={`flex items-center gap-4 p-4 bg-zinc-800/50 border border-zinc-700/60 rounded-lg transition-all duration-150 hover:border-zinc-600/60 ${isProcessing ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-1.5">
-          <span className="text-sm text-zinc-200 font-medium truncate">{task.title}</span>
+        <div className="flex items-center gap-2.5 flex-wrap mb-2">
+          <span className="text-base text-zinc-200 font-medium truncate">{task.title}</span>
           <Badge variant={task.pillar.toLowerCase() as 'hack' | 'build' | 'ai' | 'presence'}>
             {task.pillar}
           </Badge>
@@ -172,21 +172,21 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
             {task.origin}
           </Badge>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <span className="font-mono text-sm text-zinc-500">
             M{task.month.toString().padStart(2, '0')}
           </span>
-          <span className="font-mono text-sm" style={{ color: pillar.color }}>
+          <span className="font-mono text-sm font-medium" style={{ color: pillar.color }}>
             +{task.xp_value} XP
           </span>
           {task.description && (
-            <span className="font-mono text-sm text-zinc-600 truncate max-w-[200px] hidden sm:block">
+            <span className="font-mono text-sm text-zinc-500 truncate max-w-[250px] hidden sm:block">
               {task.description}
             </span>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2.5 flex-shrink-0">
         {nextStatus[task.status] && nextLabel && (
           <Button
             size="sm"
@@ -200,7 +200,7 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
         )}
         <Button
           size="sm"
-          variant="danger"
+          variant="ghost"
           onClick={() => {
             if (confirm('Delete this task?')) {
               onDelete(task.id);

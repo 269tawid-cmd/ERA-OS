@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm create *)"
+      "Bash(pnpm create *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Tawhid\\\\ERA OS\" -Depth 1)",
+      "Bash(Select-Object Name, Mode, Length)"
     ]
   }
 }

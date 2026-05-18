@@ -10,15 +10,15 @@ export function Card({ className, variant = 'default', glow, children, ...props 
   return (
     <div
       className={clsx(
-        'rounded-lg',
+        'rounded-lg transition-shadow duration-150',
         {
-          'bg-zinc-900/80 border border-zinc-800/60 backdrop-blur-sm': variant === 'default',
-          'bg-zinc-900/80 border border-zinc-800 backdrop-blur-sm': variant === 'bordered',
-          'bg-zinc-900/80 border backdrop-blur-sm': variant === 'glow',
-          'border-[#ef4444] glow-hack': glow === 'hack',
-          'border-[#a855f7] glow-build': glow === 'build',
-          'border-[#2dd4bf] glow-ai': glow === 'ai',
-          'border-[#f59e0b] glow-presence': glow === 'presence',
+          'bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm': variant === 'default',
+          'bg-zinc-900/90 border border-zinc-700/80 backdrop-blur-sm': variant === 'bordered',
+          'bg-zinc-900/90 border backdrop-blur-sm': variant === 'glow',
+          'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.15)]': glow === 'hack',
+          'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.15)]': glow === 'build',
+          'border-teal-500/50 shadow-[0_0_20px_rgba(45,212,191,0.15)]': glow === 'ai',
+          'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]': glow === 'presence',
         },
         className
       )}
@@ -31,7 +31,7 @@ export function Card({ className, variant = 'default', glow, children, ...props 
 
 export function CardHeader({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={clsx('px-4 py-3 border-b border-zinc-800/60', className)} {...props}>
+    <div className={clsx('px-4 py-3 border-b border-zinc-800/70', className)} {...props}>
       {children}
     </div>
   );
@@ -47,7 +47,7 @@ export function CardContent({ className, children, ...props }: HTMLAttributes<HT
 
 export function CardFooter({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={clsx('px-4 py-3 border-t border-zinc-800/60', className)} {...props}>
+    <div className={clsx('px-4 py-3 border-t border-zinc-800/70', className)} {...props}>
       {children}
     </div>
   );

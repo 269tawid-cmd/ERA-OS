@@ -50,21 +50,21 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
   };
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden h-full flex flex-col">
-      <CardHeader className="pb-2 border-b border-zinc-800/40">
+    <Card className="bg-zinc-900/90 border border-zinc-800/80 backdrop-blur-sm overflow-hidden h-full flex flex-col">
+      <CardHeader className="pb-3 border-b border-zinc-800/60">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">Era OS</span>
-            <span className="font-mono text-[10px] text-zinc-700">{'//'} mentor</span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-zinc-400 uppercase tracking-wider">Era OS</span>
+            <span className="font-mono text-sm text-zinc-600">{'//'} mentor</span>
           </div>
           {loading && (
-            <span className="font-mono text-[10px] text-zinc-500 animate-pulse">thinking...</span>
+            <span className="font-mono text-sm text-zinc-500 animate-pulse">thinking...</span>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col gap-3 p-3">
-        <div className="flex gap-2 flex-wrap">
+      <CardContent className="flex-1 flex flex-col gap-4 p-4">
+        <div className="flex gap-2.5 flex-wrap">
           <Button
             size="sm"
             variant="secondary"
@@ -84,7 +84,7 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
         </div>
 
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-zinc-600">›</span>
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-zinc-500 text-lg">›</span>
           <Input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -95,20 +95,20 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
                 setQuestion('');
               }
             }}
-            className="pl-6"
+            className="pl-8"
           />
         </div>
 
         {error && (
-          <div className="p-2 bg-red-500/10 border border-red-500/30 rounded-md">
-            <p className="font-mono text-[10px] text-red-400">{error}</p>
+          <div className="p-3 bg-red-500/15 border border-red-500/40 rounded-lg">
+            <p className="font-mono text-sm text-red-400">{error}</p>
           </div>
         )}
 
         {loading && (
-          <div className="flex items-center gap-2 py-4">
-            <span className="font-mono text-[10px] text-zinc-600 animate-pulse">■</span>
-            <span className="font-mono text-[10px] text-zinc-600">Processing request</span>
+          <div className="flex items-center gap-3 py-4">
+            <span className="font-mono text-sm text-zinc-600 animate-pulse">■</span>
+            <span className="font-mono text-sm text-zinc-500">Processing request</span>
           </div>
         )}
 
@@ -119,10 +119,10 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
         )}
 
         {!loading && !response && !error && (
-          <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-            <span className="font-mono text-[10px] text-zinc-700 mb-2">$ mentor --ready</span>
-            <p className="font-mono text-xs text-zinc-600 mb-1">Ask about your cybersecurity journey</p>
-            <p className="font-mono text-[10px] text-zinc-700">
+          <div className="flex-1 flex flex-col items-center justify-center py-6 text-center">
+            <span className="font-mono text-sm text-zinc-700 mb-3">$ mentor --ready</span>
+            <p className="font-mono text-sm text-zinc-500 mb-2">Ask about your cybersecurity journey</p>
+            <p className="font-mono text-sm text-zinc-600">
               &quot;What should I focus on this week?&quot;
             </p>
           </div>

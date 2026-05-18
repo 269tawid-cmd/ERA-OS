@@ -13,6 +13,7 @@ export function LearningLogForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [content, setContent] = useState('');
   const [pillar, setPillar] = useState<Pillar>('HACK');
   const [isWin, setIsWin] = useState(false);
@@ -34,7 +35,10 @@ export function LearningLogForm() {
       });
       setContent('');
       setIsWin(false);
+      setSuccess(true);
       router.refresh();
+
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -43,14 +47,20 @@ export function LearningLogForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-2 bg-red-500/10 border border-red-500/30 rounded-md">
-          <p className="font-mono text-xs text-red-400">{error}</p>
+        <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-lg">
+          <p className="font-mono text-sm text-red-400">{error}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      {success && (
+        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-lg">
+          <p className="font-mono text-sm text-emerald-400">Log saved successfully</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
         <Select
           label="Pillar"
           value={pillar}
@@ -65,10 +75,10 @@ export function LearningLogForm() {
           <button
             type="button"
             onClick={() => setIsWin(!isWin)}
-            className={`w-full px-3 py-2 rounded-md border text-sm font-medium transition-all duration-150 ${
+            className={`w-full px-4 py-3 rounded-lg border text-sm font-medium transition-all duration-150 ${
               isWin
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                : 'bg-zinc-950 border-zinc-800/80 text-zinc-500'
+                ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+                : 'bg-zinc-950 border-zinc-700/80 text-zinc-400 hover:border-zinc-600'
             }`}
           >
             {isWin ? '[+] WIN' : '[ ] Mark as Win'}
@@ -77,29 +87,29 @@ export function LearningLogForm() {
       </div>
 
       <div className="relative">
-        <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider font-mono">
+        <label className="block text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider font-mono">
           Log Entry
         </label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="What did you learn today? (max 500 chars)"
-          rows={3}
-          className={`w-full px-3 py-2 bg-zinc-950 border rounded-md text-sm text-zinc-200 placeholder-zinc-600 resize-none focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] transition-colors duration-150 ${
+          rows={4}
+          className={`w-full px-4 py-3 bg-zinc-950 border rounded-lg text-base text-zinc-200 placeholder-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] transition-all duration-150 ${
             isOverLimit
               ? 'border-red-500/50 focus:ring-red-500/30'
-              : 'border-zinc-800/80 focus:border-zinc-600/80 focus:ring-zinc-500/20'
+              : 'border-zinc-700/80 focus:border-zinc-600 focus:ring-zinc-500/20 hover:border-zinc-600'
           }`}
         />
-        <div className="absolute bottom-2 right-2">
-          <span className={`font-mono text-[10px] ${isOverLimit ? 'text-red-400' : 'text-zinc-600'}`}>
+        <div className="absolute bottom-3 right-3">
+          <span className={`font-mono text-sm ${isOverLimit ? 'text-red-400' : 'text-zinc-500'}`}>
             {charCount}/{MAX_CHARS}
           </span>
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading || isOverLimit || !content.trim()} loading={loading}>
+      <div className="flex justify-end pt-2">
+        <Button type="submit" disabled={loading || isOverLimit || !content.trim()} loading={loading} size="lg">
           Log Entry
         </Button>
       </div>
