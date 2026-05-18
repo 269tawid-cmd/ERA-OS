@@ -112,6 +112,67 @@ body {
   border: 1px solid rgba(255,255,255,0.06);
 }
 
+.hud-frame {
+  position: relative;
+  background: linear-gradient(135deg, rgba(24,24,27,0.7) 0%, rgba(39,39,42,0.5) 50%, rgba(24,24,27,0.7) 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
+.hud-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 20%, rgba(255,255,255,0.15) 80%, transparent 100%);
+}
+
+.hud-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.2) 100%);
+  pointer-events: none;
+}
+
+.command-decorator {
+  position: relative;
+}
+
+.command-decorator::before {
+  content: '◆';
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  color: rgba(239,68,68,0.6);
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .terminal-text {
   font-family: var(--font-mono);
   font-size: 0.75rem;

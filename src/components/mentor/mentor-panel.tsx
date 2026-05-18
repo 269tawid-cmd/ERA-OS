@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, Button, Input } from '@/components/ui';
+import { Card, Button, Input } from '@/components/ui';
 import { MentorCard } from './mentor-card';
 import type { AIMentorResponse } from '@/lib/ai/response-types';
 
@@ -50,52 +50,55 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
   };
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden h-full flex flex-col">
-      <CardHeader className="pb-3 border-b border-zinc-800/60">
+    <Card className="cyber-panel border border-zinc-800/30 h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-zinc-800/30 bg-gradient-to-r from-zinc-900/40 to-transparent">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm text-zinc-400 uppercase tracking-wider">Era OS</span>
-            <span className="font-mono text-sm text-zinc-600">{'//'} mentor</span>
+          <div className="flex items-center gap-2">
+            <span className="text-amber-500 text-xs">◈</span>
+            <span className="font-mono text-xs text-zinc-400 uppercase tracking-wider">Era OS</span>
+            <span className="font-mono text-xs text-zinc-700">{'//'} mentor</span>
           </div>
           {loading && (
-            <span className="font-mono text-sm text-zinc-500 animate-pulse">thinking...</span>
+            <span className="font-mono text-xs text-amber-500 animate-pulse">processing...</span>
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="flex-1 flex flex-col gap-4 p-4">
-        <div className="flex gap-2.5 flex-wrap">
+      <div className="flex-1 flex flex-col gap-4 p-4">
+        <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
             variant="secondary"
             onClick={() => fetchMentor('daily_tasks')}
             disabled={loading}
+            className="font-mono text-xs border-zinc-700/40 hover:border-zinc-600/60"
           >
-            /tasks
+            <span className="text-amber-500 mr-1.5">›</span>/tasks
           </Button>
           <Button
             size="sm"
             variant="secondary"
             onClick={() => fetchMentor('motivational_nudge')}
             disabled={loading}
+            className="font-mono text-xs border-zinc-700/40 hover:border-zinc-600/60"
           >
-            /motivate
+            <span className="text-amber-500 mr-1.5">›</span>/motivate
           </Button>
         </div>
 
         <div className="relative">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-zinc-500 text-lg">›</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-amber-500 text-base">›</span>
           <Input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask your mentor..."
+            placeholder="Query mentor..."
+            className="pl-8 bg-zinc-900/40 border-zinc-800/40 font-mono text-sm"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && question.trim()) {
                 fetchMentor('mentor_answer', question);
                 setQuestion('');
               }
             }}
-            className="pl-8"
           />
         </div>
 
@@ -127,7 +130,7 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
             </p>
           </div>
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 }

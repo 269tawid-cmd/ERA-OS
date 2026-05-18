@@ -13,29 +13,33 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
   const daysRemaining = Math.round(progress.remaining * 30);
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
-      <CardContent className="py-6 px-6">
-        <div className="flex items-start justify-between mb-5">
+    <Card className="cyber-panel border border-zinc-800/30 overflow-hidden transition-all duration-200 hover:border-zinc-700/40">
+      <CardContent className="py-5 px-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <span className="font-mono text-sm text-zinc-500 uppercase tracking-wider">Phase</span>
-              <span className="font-mono text-base px-3 py-1 bg-zinc-800/80 text-zinc-200 rounded border border-zinc-700/50 font-semibold">
-                {month.toString().padStart(2, '0')}
-              </span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-red-500 text-xs">◈</span>
+              <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">Current Phase</span>
             </div>
-            <h3 className="font-mono text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">
-              {monthData?.title || 'Unknown'}
-            </h3>
+            <span className="font-mono text-lg px-3 py-1.5 bg-zinc-900/50 text-zinc-200 rounded border border-zinc-700/30 font-semibold">
+              M{month.toString().padStart(2, '0')}
+            </span>
           </div>
           <div className="text-right">
-            <p className="font-mono text-4xl font-bold text-zinc-100">{progress.percentage}%</p>
-            <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mt-1">year progress</p>
+            <p className="font-mono text-3xl font-bold text-zinc-100">{progress.percentage}%</p>
+            <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">year progress</p>
           </div>
         </div>
 
-        <div className="h-3 bg-zinc-800/80 rounded-full overflow-hidden mb-6">
+        <div className="mb-2">
+          <h3 className="font-mono text-lg font-bold text-zinc-200 tracking-tight">
+            {monthData?.title || 'Unknown'}
+          </h3>
+        </div>
+
+        <div className="h-2 bg-zinc-800/60 rounded-full overflow-hidden mb-5">
           <div
-            className="h-full bg-gradient-to-r from-red-500 to-red-400/80 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-red-500/80 to-red-400/60 rounded-full transition-all duration-500"
             style={{ width: `${progress.percentage}%` }}
           />
         </div>

@@ -91,32 +91,40 @@ export default async function Dashboard() {
   return (
     <div className="min-h-screen text-zinc-200">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <header className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="font-mono text-sm text-zinc-500">era-os</span>
-              <span className="font-mono text-xs text-zinc-700">v0.1.0</span>
+        <header className="mb-8">
+          <div className="hud-frame p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="status-indicator font-mono text-xs text-emerald-400">SYSTEM ACTIVE</span>
+                  <span className="font-mono text-xs text-zinc-600">era-os</span>
+                  <span className="font-mono text-xs text-zinc-700">v0.1.0</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-red-500 text-lg">▸</span>
+                  <h1 className="font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
+                    COMMAND CENTER
+                  </h1>
+                </div>
+                <p className="font-mono text-sm text-zinc-500 mt-2 ml-6">
+                  Roadmap-aware operations interface
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link href="/import">
+                  <Button variant="secondary" size="sm" className="hidden sm:flex border-zinc-700/60">
+                    <span className="text-zinc-500 mr-1">+</span> Import Roadmap
+                  </Button>
+                </Link>
+                <Link
+                  href="/roadmap"
+                  className="font-mono text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 px-4 py-2.5 rounded-md hover:bg-zinc-800/50 transition-all duration-150 flex items-center gap-2"
+                >
+                  <span className="text-zinc-500">{'→'}</span>
+                  View Roadmap
+                </Link>
+              </div>
             </div>
-            <h1 className="font-mono text-3xl sm:text-4xl font-bold text-zinc-100 tracking-tight">
-              Command Center
-            </h1>
-            <p className="font-mono text-sm sm:text-base text-zinc-400 mt-1.5">
-              Your roadmap-aware operating system
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/import">
-              <Button variant="secondary" size="sm" className="hidden sm:flex">
-                <span className="text-zinc-500 mr-1">+</span> Import Roadmap
-              </Button>
-            </Link>
-            <Link
-              href="/roadmap"
-              className="font-mono text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 px-4 py-2.5 rounded-md hover:bg-zinc-800/50 transition-all duration-150 flex items-center gap-2"
-            >
-              <span className="text-zinc-500">{'→'}</span>
-              View Roadmap
-            </Link>
           </div>
         </header>
 
