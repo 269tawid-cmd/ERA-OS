@@ -38,10 +38,10 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+          <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
             Task Distribution
           </span>
-          <span className="font-mono text-[10px] text-zinc-700">{total} total</span>
+          <span className="font-mono text-xs text-zinc-400">{total} total</span>
         </div>
       </CardHeader>
       <CardContent>
@@ -49,7 +49,7 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
           <div className="flex items-center gap-3">
             {noData ? (
               <div className="w-16 h-16 rounded-full bg-zinc-800/40 flex items-center justify-center">
-                <span className="font-mono text-[10px] text-zinc-700">—</span>
+                <span className="font-mono text-sm text-zinc-500">—</span>
               </div>
             ) : (
               <div className="w-16 h-16 relative flex-shrink-0">
@@ -73,29 +73,29 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
                 </ResponsiveContainer>
               </div>
             )}
-            <div className="space-y-1 min-w-0">
+            <div className="space-y-2 min-w-0">
               {statusData.map((d) => (
                 <div key={d.label} className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="font-mono text-[9px] text-zinc-600">{d.label}</span>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                    <span className="font-mono text-xs text-zinc-400">{d.label}</span>
                   </div>
-                  <span className="font-mono text-[9px] text-zinc-500">{d.value}</span>
+                  <span className="font-mono text-xs text-zinc-400">{d.value}</span>
                 </div>
               ))}
               {noData && (
-                <div className="font-mono text-[9px] text-zinc-600">No tasks yet</div>
+                <div className="font-mono text-xs text-zinc-500">No tasks yet</div>
               )}
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-[10px] text-zinc-600">Completion</span>
-                <span className="font-mono text-[10px] text-zinc-400">{completionRate}%</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs text-zinc-400">Completion</span>
+                <span className="font-mono text-sm text-zinc-300">{completionRate}%</span>
               </div>
-              <div className="h-[3px] bg-zinc-800/60 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-zinc-800/60 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-500/60 rounded-full"
                   style={{ width: `${completionRate}%` }}
@@ -104,11 +104,11 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-[10px] text-zinc-600">Streak</span>
-                <span className="font-mono text-[10px] text-zinc-400">{streakCurrent}d</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs text-zinc-400">Streak</span>
+                <span className="font-mono text-sm text-zinc-300">{streakCurrent}d</span>
               </div>
-              <div className="h-[3px] bg-zinc-800/60 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-zinc-800/60 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-500/60 rounded-full"
                   style={{ width: `${Math.min(streakCurrent / 30 * 100, 100)}%` }}
@@ -117,11 +117,11 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-[10px] text-zinc-600">Abandoned</span>
-                <span className="font-mono text-[10px] text-zinc-400">{overdueRatio}%</span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs text-zinc-400">Abandoned</span>
+                <span className="font-mono text-sm text-zinc-300">{overdueRatio}%</span>
               </div>
-              <div className="h-[3px] bg-zinc-800/60 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-zinc-800/60 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-red-500/40 rounded-full"
                   style={{ width: `${overdueRatio}%` }}

@@ -140,3 +140,33 @@ input, select, textarea, button {
     scroll-behavior: auto !important;
   }
 }
+
+.cyber-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.82),
+      rgba(0,0,0,0.88)
+    ),
+    url('/bg/cyber-room.png');
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  filter: blur(2px);
+  transform: scale(1.03);
+
+  z-index: -10;
+}
+
+@media (max-width: 768px) {
+  .cyber-bg {
+    filter: blur(0px);
+    transform: none;
+    background-attachment: scroll;
+  }
+}

@@ -58,25 +58,25 @@ export function LearningTimeline({ logs: initialLogs }: LearningTimelineProps) {
               />
             )}
 
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-3 mb-2">
                   <span
-                    className="font-mono text-[9px] font-semibold uppercase tracking-wider"
+                    className="font-mono text-xs font-semibold uppercase tracking-wider"
                     style={{ color: pillar.color }}
                   >
                     {log.pillar}
                   </span>
-                  <span className="font-mono text-[9px] text-zinc-600">{dateStr}</span>
+                  <span className="font-mono text-xs text-zinc-500">{dateStr}</span>
                   {log.is_win && (
-                    <span className="font-mono text-[9px] text-amber-400">WIN</span>
+                    <span className="font-mono text-xs text-amber-400">WIN</span>
                   )}
                 </div>
-                <p className="font-mono text-xs text-zinc-300 leading-relaxed">{log.content}</p>
+                <p className="font-mono text-sm text-zinc-300 leading-relaxed">{log.content}</p>
               </div>
               <button
                 onClick={() => handleDelete(log.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-700 hover:text-red-400 text-[10px] font-mono flex-shrink-0 mt-1"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-red-400 text-xs font-mono flex-shrink-0 mt-1"
               >
                 del
               </button>

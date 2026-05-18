@@ -30,10 +30,10 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+          <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
             Pillar XP Distribution
           </span>
-          <span className="font-mono text-[10px] text-zinc-700">
+          <span className="font-mono text-xs text-zinc-400">
             {data.reduce((s, d) => s + d.xp, 0)} total
           </span>
         </div>
@@ -44,12 +44,12 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
             <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <XAxis
                 dataKey="label"
-                tick={{ fontFamily: 'ui-monospace', fontSize: 9, fill: '#52525b' }}
+                tick={{ fontFamily: 'ui-monospace', fontSize: 11, fill: '#71717a' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontFamily: 'ui-monospace', fontSize: 9, fill: '#52525b' }}
+                tick={{ fontFamily: 'ui-monospace', fontSize: 11, fill: '#71717a' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -59,10 +59,10 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
                   border: '1px solid #27272a',
                   borderRadius: '6px',
                   fontFamily: 'ui-monospace',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   color: '#e4e4e7',
                 }}
-                labelStyle={{ color: '#71717a' }}
+                labelStyle={{ color: '#a1a1aa' }}
                 formatter={(value: unknown) => [`${value} XP`, 'XP']}
               />
               <Bar dataKey="xp" radius={[3, 3, 0, 0]}>
@@ -89,7 +89,7 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
                     }}
                   />
                 </div>
-                <p className="font-mono text-[10px]" style={{ color: d.color }}>
+                <p className="font-mono text-sm" style={{ color: d.color }}>
                   {d.xp}
                 </p>
               </div>

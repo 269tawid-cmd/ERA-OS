@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useServiceWorker } from '@/hooks';
 import { MobileNav, OfflineIndicator } from '@/components/shared';
 
@@ -32,8 +34,24 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <OfflineIndicator />
-      {children}
+      <header className="fixed top-0 left-0 right-0 z-40 h-12 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800/60 flex items-center px-4">
+        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <div className="w-7 h-7 relative">
+            <Image
+              src="/logo.png"
+              alt="Era OS"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <span className="font-mono text-sm text-zinc-300 tracking-wide">ERA OS</span>
+        </Link>
+      </header>
+      <div className="pt-12">
+        <OfflineIndicator />
+        {children}
+      </div>
       <MobileNav />
     </>
   );

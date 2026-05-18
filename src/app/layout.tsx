@@ -56,8 +56,8 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/favicon.svg',
-    apple: '/icons/icon.svg',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 };
 
@@ -73,6 +73,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#050505] text-zinc-200">
         <ClientLayout>{children}</ClientLayout>
+        <div className="cyber-bg" />
       </body>
     </html>
   );

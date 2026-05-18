@@ -34,7 +34,7 @@ export function PillarProgress({ pillarXP, compact = false }: PillarProgressProp
                   }}
                 />
               </div>
-              <p className="font-mono text-[10px]" style={{ color: pillarData.color }}>
+              <p className="font-mono text-sm" style={{ color: pillarData.color }}>
                 {xp}
               </p>
             </div>
@@ -48,8 +48,8 @@ export function PillarProgress({ pillarXP, compact = false }: PillarProgressProp
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">Pillar Progress</span>
-          <span className="font-mono text-[10px] text-zinc-500">{totalXP} XP</span>
+          <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Pillar Progress</span>
+          <span className="font-mono text-xs text-zinc-400">{totalXP} XP</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

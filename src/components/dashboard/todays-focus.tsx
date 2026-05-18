@@ -71,29 +71,29 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">Today&apos;s Focus</h3>
-          <span className="font-mono text-[10px] text-zinc-700">{recommendations.length} tasks</span>
+          <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Today&apos;s Focus</h3>
+          <span className="font-mono text-xs text-zinc-400">{recommendations.length} tasks</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {recommendations.length === 0 ? (
           <div className="text-center py-6">
-            <p className="font-mono text-xs text-zinc-600 mb-1">All caught up</p>
-            <p className="font-mono text-[10px] text-zinc-700">Create tasks for recommendations</p>
+            <p className="font-mono text-sm text-zinc-400 mb-1">All caught up</p>
+            <p className="font-mono text-xs text-zinc-500">Click &quot;Generate Mission&quot; to get started</p>
           </div>
         ) : (
           recommendations.map((rec, i) => (
             <div
               key={i}
-              className="p-2.5 bg-zinc-900/40 border border-zinc-800/40 rounded-md"
+              className="p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-md"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="font-mono text-xs text-zinc-200 truncate">{rec.title}</p>
-                  <p className="font-mono text-[10px] text-zinc-600 mt-0.5">{rec.reason}</p>
+                  <p className="font-mono text-sm text-zinc-200 truncate">{rec.title}</p>
+                  <p className="font-mono text-xs text-zinc-400 mt-1">{rec.reason}</p>
                 </div>
                 {rec.priority === 'high' && (
-                  <span className="font-mono text-[10px] px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded flex-shrink-0">
+                  <span className="font-mono text-xs px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded flex-shrink-0">
                     HIGH
                   </span>
                 )}
@@ -103,8 +103,8 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
         )}
 
         {monthData && recommendations.length > 0 && (
-          <div className="pt-2 border-t border-zinc-800/40">
-            <p className="font-mono text-[10px] text-zinc-700">
+          <div className="pt-3 border-t border-zinc-800/40">
+            <p className="font-mono text-xs text-zinc-500">
               Based on: M{currentMonth.toString().padStart(2, '0')} — {monthData.title}
             </p>
           </div>

@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
       ],
     },
     {
+      source: '/logo.png',
+      headers: [
+        { key: 'Cache-Control', value: 'public, max-age=86400, immutable' },
+      ],
+    },
+    {
+      source: '/bg/:path*',
+      headers: [
+        { key: 'Cache-Control', value: 'public, max-age=86400, immutable' },
+      ],
+    },
+    {
       source: '/sw.js',
       headers: [
         { key: 'Cache-Control', value: 'no-cache' },

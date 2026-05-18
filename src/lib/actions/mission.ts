@@ -34,19 +34,26 @@ interface GenerateMissionResult {
 }
 
 export async function generateTodayMission(): Promise<GenerateMissionResult> {
-  const { client, user } = await createClientWithAuth();
+  console.log('[DEBUG] generateTodayMission called');
   
-  const { data: progress } = await client
+  const { client, user } = await createClientWithAuth();
+  console.log('[DEBUG] Auth client created, user:', user?.id);
+  
+  const { data: progress, error: progressError } = await client
     .from('user_progress')
     .select('*')
     .eq('user_id', user.id)
-    .single() as { data: UserProgressRow | null };
+    .single() as { data: UserProgressRow | null; error: { message: string } | null };
+  
+  console.log('[DEBUG] Progress query result:', { progress, progressError });
   
   if (!progress) {
+    console.log('[DEBUG] No progress found, returning error');
     return { success: false, tasks: [], summary: '', error: 'No progress found' };
   }
   
-  const currentMonth = progress.current_month;
+  const currentMonth = progress.current_month || 1;
+  console.log('[DEBUG] Current month:', currentMonth);
   
   const { data: existingTasks } = await client
     .from('tasks')
@@ -120,6 +127,8 @@ export async function generateTodayMission(): Promise<GenerateMissionResult> {
     created_at: t.created_at,
   }));
 
+  console.log('[DEBUG] Calling getTodayMission with:', { currentMonth, pillarXP, streak: progress.streak_current, pendingCount: pendingTasks.length, existingCount: allTasksForMonth.length });
+  
   const { tasks: generatedTasks, summary } = getTodayMission(
     currentMonth,
     pillarXP,
@@ -128,6 +137,8 @@ export async function generateTodayMission(): Promise<GenerateMissionResult> {
     allTasksForMonth,
     yearlySchema
   );
+  
+  console.log('[DEBUG] Generated tasks:', { count: generatedTasks.length, summary, tasks: generatedTasks.map(t => t.title) });
   
   const newTasks: Task[] = [];
   

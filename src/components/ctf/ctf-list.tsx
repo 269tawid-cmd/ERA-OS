@@ -52,15 +52,15 @@ export function CTFList({ entries: initialEntries }: CTFListProps) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-[10px] text-zinc-600">Solved:</span>
-          <span className="font-mono text-[10px] text-emerald-400">{solvedCount}</span>
+    <div className="space-y-3">
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm text-zinc-400">Solved:</span>
+          <span className="font-mono text-sm text-emerald-400">{solvedCount}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="font-mono text-[10px] text-zinc-600">HACK XP:</span>
-          <span className="font-mono text-[10px] text-red-400">+{totalXP}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm text-zinc-400">HACK XP:</span>
+          <span className="font-mono text-sm text-red-400">+{totalXP}</span>
         </div>
       </div>
 
@@ -71,36 +71,36 @@ export function CTFList({ entries: initialEntries }: CTFListProps) {
         return (
           <div
             key={entry.id}
-            className="group flex items-center justify-between gap-3 p-2.5 bg-zinc-900/40 border border-zinc-800/40 rounded-md"
+            className="group flex items-center justify-between gap-3 p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-md"
           >
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 {entry.solved && (
-                  <span className="text-emerald-400 font-mono text-[10px]">✓</span>
+                  <span className="text-emerald-400 font-mono text-sm">✓</span>
                 )}
-                <span className="font-mono text-xs text-zinc-200 truncate">{entry.name}</span>
-                <span className="font-mono text-[9px] text-zinc-600">{entry.platform}</span>
-                <span className={`font-mono text-[9px] ${categoryColors[entry.category]}`}>
+                <span className="font-mono text-sm text-zinc-200 truncate">{entry.name}</span>
+                <span className="font-mono text-xs text-zinc-500">{entry.platform}</span>
+                <span className={`font-mono text-xs ${categoryColors[entry.category]}`}>
                   {entry.category}
                 </span>
-                <span className={`font-mono text-[9px] ${difficultyColors[entry.difficulty]}`}>
+                <span className={`font-mono text-xs ${difficultyColors[entry.difficulty]}`}>
                   {entry.difficulty}
                 </span>
-                <span className="font-mono text-[9px] text-zinc-600">{dateStr}</span>
+                <span className="font-mono text-xs text-zinc-500">{dateStr}</span>
               </div>
               {entry.flag_notes && (
-                <p className="font-mono text-[10px] text-zinc-600 mt-0.5 truncate">
+                <p className="font-mono text-xs text-zinc-500 mt-1.5 truncate">
                   {entry.flag_notes}
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {entry.solved && entry.xp_earned > 0 && (
-                <span className="font-mono text-[10px] text-red-400">+{entry.xp_earned} XP</span>
+                <span className="font-mono text-sm text-red-400">+{entry.xp_earned} XP</span>
               )}
               <button
                 onClick={() => handleDelete(entry.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-700 hover:text-red-400 text-[10px] font-mono"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-500 hover:text-red-400 text-xs font-mono"
               >
                 del
               </button>

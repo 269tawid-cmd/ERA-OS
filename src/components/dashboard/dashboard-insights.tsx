@@ -105,18 +105,18 @@ export function DashboardInsights({ tasks, pillarXP }: DashboardInsightsProps) {
   return (
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
-        <h3 className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">Insights</h3>
+        <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Insights</h3>
       </CardHeader>
-      <CardContent className="space-y-1.5">
+      <CardContent className="space-y-2">
         {insights.length === 0 ? (
-          <p className="font-mono text-xs text-zinc-600">Complete tasks to generate insights</p>
+          <p className="font-mono text-sm text-zinc-500">Complete tasks to generate insights</p>
         ) : (
           insights.map((insight, i) => (
             <div
               key={i}
-              className={`font-mono text-xs p-2 rounded border ${typeStyles[insight.type]}`}
+              className={`font-mono text-sm p-3 rounded border ${typeStyles[insight.type]}`}
             >
-              <span className="mr-2 opacity-60">{typeIcons[insight.type]}</span>
+              <span className="mr-2 opacity-70">{typeIcons[insight.type]}</span>
               {insight.message}
             </div>
           ))

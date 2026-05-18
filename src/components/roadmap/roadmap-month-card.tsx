@@ -40,36 +40,36 @@ export function RoadmapMonthCard({ monthData, currentMonth, tasks }: RoadmapMont
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span
-              className={`font-mono text-lg font-bold ${
-                isCurrent ? 'text-red-400' : isPast ? 'text-zinc-400' : 'text-zinc-600'
+<span
+              className={`font-mono text-xs ${
+                isCurrent ? 'text-red-400' : isPast ? 'text-zinc-400' : 'text-zinc-500'
               }`}
             >
               {monthData.month.toString().padStart(2, '0')}
             </span>
             {isCurrent && (
-              <span className="font-mono text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded uppercase tracking-wider">
+              <span className="font-mono text-xs px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded uppercase tracking-wider">
                 Current
               </span>
             )}
             {milestone && isPast && (
-              <span className="font-mono text-[9px] text-amber-400">★ Milestone</span>
+              <span className="font-mono text-xs text-amber-400">★ Milestone</span>
             )}
           </div>
-          <span className="font-mono text-[10px] text-zinc-600">
+          <span className="font-mono text-xs text-zinc-400">
             {completedTasks}/{totalTasks}
           </span>
         </div>
 
         <h3
-          className={`font-mono text-sm font-semibold mb-1 ${
+          className={`font-mono text-base font-semibold mb-2 ${
             isCurrent ? 'text-zinc-100' : isPast ? 'text-zinc-300' : 'text-zinc-500'
           }`}
         >
           {monthData.title}
         </h3>
 
-        <div className="h-[2px] bg-zinc-800/60 rounded-full overflow-hidden mt-2 mb-2">
+        <div className="h-1.5 bg-zinc-800/60 rounded-full overflow-hidden mt-2 mb-2">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
               isCurrent ? 'bg-red-500/60' : isPast ? 'bg-emerald-500/40' : 'bg-zinc-700/40'
@@ -78,7 +78,7 @@ export function RoadmapMonthCard({ monthData, currentMonth, tasks }: RoadmapMont
           />
         </div>
 
-        <p className="font-mono text-[10px] text-zinc-600">
+        <p className="font-mono text-xs text-zinc-500">
           {totalTasks > 0 ? `${completionRate}% complete` : 'No tasks assigned'}
         </p>
       </div>

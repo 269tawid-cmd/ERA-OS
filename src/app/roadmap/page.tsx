@@ -83,28 +83,28 @@ export default async function RoadmapPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-200">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <header className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <span className="font-mono text-xs text-zinc-600">era-os</span>
-            <span className="font-mono text-[10px] text-zinc-700">{'//'} roadmap</span>
+        <header className="mb-8">
+          <div className="flex items-center gap-4 mb-2">
+            <span className="font-mono text-sm text-zinc-500">era-os</span>
+            <span className="font-mono text-xs text-zinc-600">{'//'} roadmap</span>
           </div>
-          <h1 className="font-mono text-2xl font-bold text-zinc-100 tracking-tight">
+          <h1 className="font-mono text-3xl font-bold text-zinc-100 tracking-tight">
             Hacker Era King Journey
           </h1>
-          <p className="font-mono text-xs text-zinc-600 mt-0.5">
+          <p className="font-mono text-sm text-zinc-400 mt-1">
             Year 1 of 4 · {roadmapProgress.percentage}% complete
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
           <div className="lg:col-span-2">
             <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+                  <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
                     Year 1 Timeline
                   </span>
-                  <span className="font-mono text-[10px] text-zinc-700">
+                  <span className="font-mono text-xs text-zinc-400">
                     {roadmapProgress.completed}/12 months
                   </span>
                 </div>
@@ -121,27 +121,27 @@ export default async function RoadmapPage() {
         </div>
 
         <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="pb-2">
-            <h2 className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
+          <CardHeader className="pb-3">
+            <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
               Current Phase: {monthData?.title || 'Unknown'}
             </h2>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-5">
               <div>
-                <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
+                <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
                   Focus Areas
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   {monthData?.focus.slice(0, 4).map((f, i) => (
-                    <p key={i} className="font-mono text-xs text-zinc-400">
+                    <p key={i} className="font-mono text-sm text-zinc-300">
                       › {f}
                     </p>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest mb-2">
+                <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
                   Key Deliverables
                 </p>
                 <div className="space-y-1">
