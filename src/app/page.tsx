@@ -89,7 +89,7 @@ export default async function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-200">
+    <div className="min-h-screen text-zinc-200">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <header className="mb-8 flex items-start justify-between gap-4">
           <div>

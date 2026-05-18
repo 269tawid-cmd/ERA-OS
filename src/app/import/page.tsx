@@ -18,7 +18,7 @@ export default async function ImportPage() {
   const activeRoadmap = await getActiveRoadmap();
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-200">
+    <div className="min-h-screen text-zinc-200">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <header className="mb-8">
           <div className="flex items-center gap-3 mb-2">

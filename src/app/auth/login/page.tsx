@@ -31,7 +31,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-zinc-900/40 via-transparent to-zinc-900/20" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
 
