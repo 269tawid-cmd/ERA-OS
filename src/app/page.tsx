@@ -96,7 +96,7 @@ export default async function Dashboard() {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="status-indicator font-mono text-xs text-emerald-400">SYSTEM ACTIVE</span>
+                  <span className="status-indicator font-mono text-xs text-emerald-400 system-pulse">SYSTEM ACTIVE</span>
                   <span className="font-mono text-xs text-zinc-600">era-os</span>
                   <span className="font-mono text-xs text-zinc-700">v0.1.0</span>
                 </div>

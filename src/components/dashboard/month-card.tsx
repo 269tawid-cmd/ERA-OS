@@ -13,15 +13,15 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
   const daysRemaining = Math.round(progress.remaining * 30);
 
   return (
-    <Card className="cyber-panel border border-zinc-800/30 overflow-hidden transition-all duration-200 hover:border-zinc-700/40">
+    <Card className="focus-panel interactive-panel border border-zinc-800/20 overflow-hidden">
       <CardContent className="py-5 px-5">
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-red-500 text-xs">◈</span>
-              <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">Current Phase</span>
+              <span className="font-mono text-xs text-zinc-400 uppercase tracking-wider">Current Phase</span>
             </div>
-            <span className="font-mono text-lg px-3 py-1.5 bg-zinc-900/50 text-zinc-200 rounded border border-zinc-700/30 font-semibold">
+            <span className="font-mono text-lg px-3 py-1.5 bg-zinc-900/60 text-zinc-200 rounded border border-zinc-700/40 font-semibold">
               M{month.toString().padStart(2, '0')}
             </span>
           </div>

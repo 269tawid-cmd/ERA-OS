@@ -50,8 +50,8 @@ export function MentorPanel({ initialResponse }: MentorPanelProps) {
   };
 
   return (
-    <Card className="cyber-panel border border-zinc-800/30 h-full flex flex-col">
-      <div className="px-4 py-3 border-b border-zinc-800/30 bg-gradient-to-r from-zinc-900/40 to-transparent">
+    <Card className="focus-panel interactive-panel border border-zinc-800/20 h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-zinc-800/20 bg-gradient-to-r from-zinc-900/60 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-amber-500 text-xs">◈</span>

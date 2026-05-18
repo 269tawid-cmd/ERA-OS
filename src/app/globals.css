@@ -138,6 +138,128 @@ body {
   pointer-events: none;
 }
 
+.focus-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(12,12,14,0.85) 0%, rgba(24,24,27,0.75) 100%);
+}
+
+.focus-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+  pointer-events: none;
+}
+
+.depth-surface {
+  background: linear-gradient(180deg, rgba(24,24,27,0.5) 0%, rgba(12,12,14,0.7) 100%);
+}
+
+.layer-environment {
+  z-index: -2;
+}
+
+.layer-overlay {
+  z-index: -1;
+}
+
+.layer-ui {
+  z-index: 10;
+}
+
+.layer-interactive {
+  z-index: 20;
+}
+
+.interactive-panel {
+  transition: all 0.2s ease-out;
+}
+
+.interactive-panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.interactive-panel:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.command-button {
+  position: relative;
+  transition: all 0.15s ease-out;
+}
+
+.command-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.command-button:hover::before {
+  opacity: 1;
+}
+
+.command-button:active {
+  transform: scale(0.98);
+}
+
+.command-input {
+  transition: all 0.15s ease-out;
+}
+
+.command-input:focus {
+  background: rgba(39,39,42,0.6);
+  box-shadow: inset 0 0 0 1px rgba(245,158,11,0.3);
+}
+
+.command-input:focus::placeholder {
+  color: rgba(161,161,170,0.5);
+}
+
+.system-pulse {
+  animation: system-pulse 3s ease-in-out infinite;
+}
+
+@keyframes system-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.edge-glow {
+  position: relative;
+}
+
+.edge-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(245,158,11,0.2) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.edge-glow:focus-within::after {
+  opacity: 1;
+}
+
+.interaction-ready {
+  cursor: pointer;
+  user-select: none;
+}
+
+.interaction-ready:hover {
+  cursor: pointer;
+}
+
 .command-decorator {
   position: relative;
 }
