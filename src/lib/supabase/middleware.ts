@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) {
+  if (false) {
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);

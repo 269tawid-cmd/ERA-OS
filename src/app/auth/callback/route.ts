@@ -11,6 +11,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
 
+    console.log('AUTH CALLBACK SESSION:', {
+      hasUser: !!sessionData?.user,
+      userId: sessionData?.user?.id,
+      error: error?.message,
+    });
+
     if (!error && sessionData?.user) {
       await bootstrapUserProgress(sessionData.user.id);
       return NextResponse.redirect(new URL(next, origin));
