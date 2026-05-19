@@ -1,8 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_ROUTES = ['/auth/login', '/auth/callback', '/auth/error'];
-const PUBLIC_PATTERNS = ['/favicon.ico', '/_next', '/static', /\/api\/public/];
+const PUBLIC_ROUTES = ['/auth/login', '/auth/callback', '/auth/error', '/auth/logout'];
+const PUBLIC_PATTERNS = ['/favicon.ico', '/_next', '/static', '/icons', '/bg', '/logo.png', /\/api\/public/, /\/api\/mentor/];
 
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname)) {
@@ -59,9 +59,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session }, error } = await supabase.auth.getSession();
 
-  if (!user) {
+  if (error || !session) {
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);
