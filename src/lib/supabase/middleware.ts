@@ -59,9 +59,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  if (error || !session) {
+  if (error || !user) {
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);

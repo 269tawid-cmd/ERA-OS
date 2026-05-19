@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
     if (!error && sessionData?.user) {
       await bootstrapUserProgress(sessionData.user.id);
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(new URL(next, origin));
     }
   }
 
