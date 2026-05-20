@@ -12,7 +12,7 @@ export async function createClient() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
       },
       cookies: {
         getAll() {
@@ -23,7 +23,8 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch {
+          } catch (err) {
+            console.error('COOKIE SET ERROR:', err);
           }
         },
       },
