@@ -5,5 +5,6 @@ export { MentorSubsystem } from './mentor-subsystem';
 export { RoadmapStatus } from './roadmap-status';
 export { SystemTelemetry } from './system-telemetry';
 export { WorkspaceProvider, useWorkspaceState } from './workspace-state';
+export { computeWorkspaceIntelligence } from './workspace-intelligence';
 export { BootSequence } from './workspace-boot';
 export type { WorkspaceData } from './workspace-state';

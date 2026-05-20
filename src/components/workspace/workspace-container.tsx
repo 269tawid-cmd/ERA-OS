@@ -38,8 +38,10 @@ const defaultPositions: Record<string, { x: number; y: number }> = {
 };
 
 function WorkspaceContent() {
-  const { state, completeBoot, data } = useWorkspaceState();
+  const { state, completeBoot, data, intelligence } = useWorkspaceState();
   const [showBoot, setShowBoot] = useState(true);
+
+  const { environmentTone, operationalPressure, daysBehindRoadmap } = intelligence;
 
   useEffect(() => {
     const hasVisited = typeof window !== 'undefined' && 
@@ -54,13 +56,57 @@ function WorkspaceContent() {
     return <BootSequence onComplete={() => setShowBoot(false)} />;
   }
 
+  const getEnvironmentClass = () => {
+    switch (environmentTone) {
+      case 'critical':
+        return 'bg-gradient-to-b from-red-950/20 via-zinc-950 to-zinc-950';
+      case 'tense':
+        return 'bg-gradient-to-b from-amber-950/10 via-zinc-950 to-zinc-950';
+      case 'calm':
+        return 'bg-gradient-to-b from-emerald-950/10 via-zinc-950 to-zinc-950';
+      default:
+        return 'bg-gradient-to-b from-zinc-950 via-zinc-900/40 to-zinc-950';
+    }
+  };
+
+  const getPressureIndicator = () => {
+    switch (operationalPressure) {
+      case 'critical':
+        return { text: 'CRITICAL', color: 'text-red-500', glow: 'bg-red-500' };
+      case 'high':
+        return { text: 'ELEVATED', color: 'text-amber-500', glow: 'bg-amber-500' };
+      case 'medium':
+        return { text: 'MODERATE', color: 'text-zinc-400', glow: 'bg-zinc-500' };
+      default:
+        return { text: 'NOMINAL', color: 'text-emerald-600', glow: 'bg-emerald-500' };
+    }
+  };
+
+  const pressure = getPressureIndicator();
+
   return (
-    <div className="workspace-environment relative w-full h-screen overflow-hidden bg-zinc-950">
-      {/* Ambient Background */}
+    <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
+      {/* Adaptive Ambient Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-zinc-950 via-zinc-900/40 to-zinc-950" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-red-500/3 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/3 rounded-full blur-3xl animate-pulse-slow-delay" />
+        {environmentTone === 'critical' && (
+          <>
+            <div className="absolute top-0 left-0 w-full h-1 bg-red-500/20 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-red-500/10 animate-pulse" />
+          </>
+        )}
+        <div className="absolute inset-0" />
+        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl ${
+          environmentTone === 'critical' ? 'bg-red-500/10' :
+          environmentTone === 'tense' ? 'bg-amber-500/8' :
+          environmentTone === 'calm' ? 'bg-emerald-500/5' :
+          'bg-red-500/3'
+        } animate-pulse-slow`} />
+        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl ${
+          environmentTone === 'critical' ? 'bg-red-500/10' :
+          environmentTone === 'tense' ? 'bg-amber-500/8' :
+          environmentTone === 'calm' ? 'bg-emerald-500/5' :
+          'bg-amber-500/3'
+        } animate-pulse-slow-delay`} />
       </div>
 
       {/* Grid Overlay */}
@@ -77,12 +123,28 @@ function WorkspaceContent() {
         />
       </div>
 
-      {/* Corner Brackets */}
+      {/* Corner Brackets - Adaptive Color */}
       <div className="absolute inset-4 pointer-events-none">
-        <div className="absolute top-0 left-0 w-12 h-12 border-l border-t border-zinc-700/30" />
-        <div className="absolute top-0 right-0 w-12 h-12 border-r border-t border-zinc-700/30" />
-        <div className="absolute bottom-0 left-0 w-12 h-12 border-l border-b border-zinc-700/30" />
-        <div className="absolute bottom-0 right-0 w-12 h-12 border-r border-b border-zinc-700/30" />
+        <div className={`absolute top-0 left-0 w-12 h-12 border-l border-t ${
+          environmentTone === 'critical' ? 'border-red-700/40' :
+          environmentTone === 'tense' ? 'border-amber-700/40' :
+          'border-zinc-700/30'
+        }`} />
+        <div className={`absolute top-0 right-0 w-12 h-12 border-r border-t ${
+          environmentTone === 'critical' ? 'border-red-700/40' :
+          environmentTone === 'tense' ? 'border-amber-700/40' :
+          'border-zinc-700/30'
+        }`} />
+        <div className={`absolute bottom-0 left-0 w-12 h-12 border-l border-b ${
+          environmentTone === 'critical' ? 'border-red-700/40' :
+          environmentTone === 'tense' ? 'border-amber-700/40' :
+          'border-zinc-700/30'
+        }`} />
+        <div className={`absolute bottom-0 right-0 w-12 h-12 border-r border-b ${
+          environmentTone === 'critical' ? 'border-red-700/40' :
+          environmentTone === 'tense' ? 'border-amber-700/40' :
+          'border-zinc-700/30'
+        }`} />
       </div>
 
       {/* Ambient Scanline */}
@@ -91,11 +153,21 @@ function WorkspaceContent() {
       </div>
 
       {/* Status Indicators */}
-      <div className="absolute top-6 left-6 flex items-center gap-3 pointer-events-none">
+      <div className="absolute top-6 left-6 flex items-center gap-4 pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500/60 animate-pulse" />
-          <span className="font-mono text-[10px] text-zinc-600 uppercase">Online</span>
+          <span className={`w-2 h-2 rounded-full ${pressure.glow}/60 animate-pulse`} />
+          <span className={`font-mono text-[10px] uppercase ${pressure.color}`}>
+            {pressure.text}
+          </span>
         </div>
+        {daysBehindRoadmap > 7 && (
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500/60" />
+            <span className="font-mono text-[10px] text-amber-500/60">
+              {daysBehindRoadmap}d behind
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Time Display */}
@@ -165,12 +237,16 @@ function WorkspaceContent() {
         />
       </FloatingPanel>
 
-      {/* Center Info */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-40">
+      {/* Center Info - Adaptive Opacity */}
+      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none ${
+        environmentTone === 'critical' ? 'opacity-20' : 'opacity-40'
+      }`}>
         <div className="font-mono text-xs text-zinc-700 uppercase tracking-[0.3em] mb-2">
           Era OS // Workspace
         </div>
-        <div className="font-mono text-4xl text-zinc-800 tracking-widest">
+        <div className={`font-mono text-4xl tracking-widest ${
+          environmentTone === 'critical' ? 'text-red-900' : 'text-zinc-800'
+        }`}>
           COMMAND CENTER
         </div>
       </div>
@@ -180,7 +256,9 @@ function WorkspaceContent() {
         <div className="flex items-center gap-4">
           <span className="font-mono text-[10px] text-zinc-600">ERA-OS v0.1.0</span>
           <span className="text-zinc-800">|</span>
-          <span className="font-mono text-[10px] text-zinc-600">SECURE</span>
+          <span className={`font-mono text-[10px] ${pressure.color}`}>
+            {pressure.text}
+          </span>
           <span className="text-zinc-800">|</span>
           <span className="font-mono text-[10px] text-emerald-600/60">● OPERATIONAL</span>
         </div>

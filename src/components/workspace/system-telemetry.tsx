@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useWorkspaceState } from './workspace-state';
 
 interface TelemetryProps {
   streakCurrent?: number;
@@ -17,10 +18,11 @@ export function SystemTelemetry({
   logsCount = 0,
   ctfCount = 0
 }: TelemetryProps) {
+  const { intelligence, data } = useWorkspaceState();
+  const { operationalPressure, streakStatus, backlogPressure, mentorUrgency } = intelligence;
+  
   const [time, setTime] = useState<string>('--:--:--');
   const [uptime, setUptime] = useState(0);
-  const [cpuLoad, setCpuLoad] = useState(12);
-  const [memory, setMemory] = useState(34);
   
   useEffect(() => {
     const updateTime = () => {
@@ -38,16 +40,7 @@ export function SystemTelemetry({
     
     setUptime(Math.floor(Math.random() * 3600) + 1800);
     
-    // Simulate subtle telemetry fluctuations
-    const telemetryInterval = setInterval(() => {
-      setCpuLoad(prev => Math.max(5, Math.min(25, prev + (Math.random() - 0.5) * 4)));
-      setMemory(prev => Math.max(25, Math.min(45, prev + (Math.random() - 0.5) * 2)));
-    }, 3000);
-    
-    return () => {
-      clearInterval(timeInterval);
-      clearInterval(telemetryInterval);
-    };
+    return () => clearInterval(timeInterval);
   }, []);
   
   const formatUptime = (seconds: number) => {
@@ -55,6 +48,21 @@ export function SystemTelemetry({
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
   };
+
+  const getSystemStatus = () => {
+    switch (operationalPressure) {
+      case 'critical':
+        return { text: 'STRESSED', color: 'text-red-400', glow: 'bg-red-500' };
+      case 'high':
+        return { text: 'ACTIVE', color: 'text-amber-400', glow: 'bg-amber-500' };
+      case 'medium':
+        return { text: 'NOMINAL', color: 'text-zinc-400', glow: 'bg-zinc-500' };
+      default:
+        return { text: 'OPTIMAL', color: 'text-emerald-400', glow: 'bg-emerald-500' };
+    }
+  };
+
+  const status = getSystemStatus();
 
   return (
     <div className="space-y-3">
@@ -70,10 +78,20 @@ export function SystemTelemetry({
         </div>
       </div>
 
-      {/* Telemetry Grid */}
+      {/* Telemetry Grid - Real Data */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="p-2 bg-zinc-900/20 border border-zinc-800/10 rounded text-center">
-          <p className="font-mono text-xl text-emerald-400">{streakCurrent}</p>
+        <div className={`p-2 border rounded text-center ${
+          streakStatus === 'cold' 
+            ? 'bg-red-950/20 border-red-900/30' 
+            : streakStatus === 'hot'
+              ? 'bg-amber-950/20 border-amber-900/30'
+              : 'bg-zinc-900/20 border-zinc-800/10'
+        }`}>
+          <p className={`font-mono text-xl ${
+            streakStatus === 'hot' ? 'text-amber-400' :
+            streakStatus === 'cold' ? 'text-red-400' :
+            'text-emerald-400'
+          }`}>{streakCurrent}</p>
           <p className="font-mono text-[9px] text-zinc-600 uppercase">Streak</p>
         </div>
         <div className="p-2 bg-zinc-900/20 border border-zinc-800/10 rounded text-center">
@@ -90,42 +108,41 @@ export function SystemTelemetry({
         </div>
       </div>
 
-      {/* System Resources */}
-      <div className="space-y-2 pt-2 border-t border-zinc-800/20">
+      {/* System Status */}
+      <div className="pt-2 border-t border-zinc-800/20">
         <div className="flex items-center justify-between text-[10px]">
-          <span className="font-mono text-zinc-600">CPU</span>
-          <span className="font-mono text-zinc-500">{cpuLoad.toFixed(1)}%</span>
+          <span className="font-mono text-zinc-600">STATUS</span>
+          <span className={`font-mono ${status.color}`}>{status.text}</span>
         </div>
-        <div className="h-1 bg-zinc-800/30 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-emerald-500/60 transition-all duration-1000"
-            style={{ width: `${cpuLoad}%` }}
-          />
-        </div>
-        
-        <div className="flex items-center justify-between text-[10px]">
-          <span className="font-mono text-zinc-600">MEM</span>
-          <span className="font-mono text-zinc-500">{memory.toFixed(1)}%</span>
-        </div>
-        <div className="h-1 bg-zinc-800/30 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-500/60 transition-all duration-1000"
-            style={{ width: `${memory}%` }}
-          />
+        <div className="mt-2 flex items-center gap-2 text-[10px]">
+          <span className="font-mono text-zinc-600">PRESSURE</span>
+          <div className="flex-1 h-1 bg-zinc-800/30 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ${
+                operationalPressure === 'critical' ? 'bg-red-500' :
+                operationalPressure === 'high' ? 'bg-amber-500' :
+                operationalPressure === 'medium' ? 'bg-zinc-500' :
+                'bg-emerald-500'
+              }`}
+              style={{ width: `${backlogPressure}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Status Line */}
       <div className="pt-2 border-t border-zinc-800/20">
         <div className="flex items-center gap-2 text-[10px] font-mono">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-50"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+          <span className={`relative flex h-1.5 w-1.5`}>
+            <span className={`absolute inline-flex h-full w-full rounded-full ${status.glow} opacity-50 ${
+              operationalPressure === 'critical' ? 'animate-ping' : ''
+            }`}></span>
+            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${status.glow}`}></span>
           </span>
           <span className="text-zinc-500">ERA-OS</span>
           <span className="text-zinc-700">v0.1.0</span>
           <span className="text-zinc-700">•</span>
-          <span className="text-emerald-600">SYSTEM NOMINAL</span>
+          <span className={status.color}>{status.text}</span>
         </div>
       </div>
     </div>

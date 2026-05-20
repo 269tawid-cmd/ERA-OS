@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { computeWorkspaceIntelligence, WorkspaceIntelligence } from './workspace-intelligence';
 
 export interface PanelState {
   id: string;
@@ -32,6 +33,7 @@ interface WorkspaceState {
   focusedPanelId: string | null;
   bootComplete: boolean;
   data: WorkspaceData;
+  intelligence: WorkspaceIntelligence;
 }
 
 interface WorkspaceContextType {
@@ -41,6 +43,7 @@ interface WorkspaceContextType {
   togglePanel: (id: string) => void;
   completeBoot: () => void;
   data: WorkspaceData;
+  intelligence: WorkspaceIntelligence;
 }
 
 const defaultPanels: PanelState[] = [
@@ -51,6 +54,19 @@ const defaultPanels: PanelState[] = [
 ];
 
 const STORAGE_KEY = 'era-os-workspace-state';
+
+const defaultIntelligence: WorkspaceIntelligence = {
+  operationalPressure: 'low',
+  mentorUrgency: 0,
+  weakPillars: [],
+  neglectedMissions: [],
+  staleMissionCount: 0,
+  environmentTone: 'normal',
+  backlogPressure: 0,
+  streakStatus: 'cold',
+  completionRatio: 0,
+  daysBehindRoadmap: 0,
+};
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
@@ -66,10 +82,12 @@ export function WorkspaceProvider({
     focusedPanelId: null,
     bootComplete: false,
     data,
+    intelligence: defaultIntelligence,
   });
 
   useEffect(() => {
-    setState(prev => ({ ...prev, data }));
+    const intelligence = computeWorkspaceIntelligence(data);
+    setState(prev => ({ ...prev, data, intelligence }));
   }, [data]);
 
   useEffect(() => {
@@ -142,6 +160,7 @@ export function WorkspaceProvider({
       togglePanel,
       completeBoot,
       data: state.data,
+      intelligence: state.intelligence,
     }}>
       {children}
     </WorkspaceContext.Provider>
