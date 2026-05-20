@@ -6,11 +6,11 @@ import type { MonthlyRoadmap } from '@/types';
 interface MonthCardProps {
   month: number;
   monthData: MonthlyRoadmap | undefined;
-  progress: { completed: number; remaining: number; percentage: number };
+  progress: { completed: number; remaining: number; percentage: number; daysRemaining: number; daysElapsed: number; realMonth: number };
 }
 
 export function MonthCard({ month, monthData, progress }: MonthCardProps) {
-  const daysRemaining = Math.round(progress.remaining * 30);
+  const { daysRemaining, daysElapsed, realMonth, percentage } = progress;
 
   return (
     <Card className="focus-panel interactive-panel border border-zinc-800/20 overflow-hidden">
@@ -26,7 +26,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
             </span>
           </div>
           <div className="text-right">
-            <p className="font-mono text-3xl font-bold text-zinc-100">{progress.percentage}%</p>
+            <p className="font-mono text-3xl font-bold text-zinc-100">{percentage}%</p>
             <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">year progress</p>
           </div>
         </div>
@@ -40,7 +40,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
         <div className="h-2 bg-zinc-800/60 rounded-full overflow-hidden mb-5">
           <div
             className="h-full bg-gradient-to-r from-red-500/80 to-red-400/60 rounded-full transition-all duration-500"
-            style={{ width: `${progress.percentage}%` }}
+            style={{ width: `${percentage}%` }}
           />
         </div>
 
@@ -76,10 +76,10 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
 
         <div className="pt-5 border-t border-zinc-800/60 flex items-center justify-between">
           <span className="font-mono text-sm text-zinc-400">
-            ~{daysRemaining} days remaining
+            {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Year 1 complete'}
           </span>
           <span className="font-mono text-sm text-zinc-400">
-            month {month.toString().padStart(2, '0')} / 12
+            {daysElapsed > 0 ? `${daysElapsed} days in` : 'Just started'} · M{realMonth}/12
           </span>
         </div>
       </CardContent>

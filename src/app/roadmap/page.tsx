@@ -41,7 +41,7 @@ export default async function RoadmapPage() {
 
   const currentMonth = progress?.current_month || 1;
   const monthData = getMonthData(currentMonth);
-  const roadmapProgress = getRoadmapProgress(currentMonth);
+  const roadmapProgress = getRoadmapProgress(currentMonth, progress?.start_date);
   const pillarXP = progress?.pillar_xp as Record<string, number> || { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 };
 
   const taskList: Task[] = (tasks || []).map((t) => ({

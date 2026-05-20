@@ -74,13 +74,35 @@ export function getMilestoneForMonth(month: number) {
   return YEAR1_MILESTONES.find((m) => m.month === month);
 }
 
-export function getRoadmapProgress(currentMonth: number): { completed: number; remaining: number; percentage: number } {
+export function getRoadmapProgress(currentMonth: number, startDate?: string | null): { 
+  completed: number; 
+  remaining: number; 
+  percentage: number;
+  daysRemaining: number;
+  daysElapsed: number;
+  realMonth: number;
+} {
   const totalMonths = 12;
-  const completed = Math.min(currentMonth, totalMonths);
+  const totalDays = totalMonths * 30;
+  
+  let daysElapsed = 0;
+  let realMonth = currentMonth;
+  
+  if (startDate) {
+    const start = new Date(startDate);
+    const now = new Date();
+    const diffTime = now.getTime() - start.getTime();
+    daysElapsed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    realMonth = Math.min(Math.floor(daysElapsed / 30) + 1, totalMonths);
+  }
+  
+  const daysRemaining = Math.max(0, totalDays - daysElapsed);
+  const percentage = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
+  
+  const completed = Math.min(realMonth, totalMonths);
   const remaining = totalMonths - completed;
-  const percentage = Math.round((completed / totalMonths) * 100);
 
-  return { completed, remaining, percentage };
+  return { completed, remaining, percentage, daysRemaining, daysElapsed, realMonth };
 }
 
 export function formatRoadmapSummary(currentMonth: number): string {
