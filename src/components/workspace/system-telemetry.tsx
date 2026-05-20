@@ -18,8 +18,8 @@ export function SystemTelemetry({
   logsCount = 0,
   ctfCount = 0
 }: TelemetryProps) {
-  const { intelligence, data } = useWorkspaceState();
-  const { operationalPressure, streakStatus, backlogPressure, mentorUrgency } = intelligence;
+  const { context, data } = useWorkspaceState();
+  const { operationalPressure, streakStatus, backlogPressure, mentorUrgency, missionLoad, readinessLevel } = context;
   
   const [time, setTime] = useState<string>('--:--:--');
   const [uptime, setUptime] = useState(0);

@@ -8,6 +8,7 @@ import { RoadmapStatus } from './roadmap-status';
 import { SystemTelemetry } from './system-telemetry';
 import { WorkspaceProvider, useWorkspaceState } from './workspace-state';
 import { BootSequence } from './workspace-boot';
+import { OperationalEvent } from './workspace-ecosystem';
 
 interface WorkspaceData {
   tasks?: any[];
@@ -37,11 +38,89 @@ const defaultPositions: Record<string, { x: number; y: number }> = {
   'system-telemetry': { x: 400, y: 380 },
 };
 
+function EventBanner({ event, onDismiss }: { event: OperationalEvent; onDismiss: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, event.duration);
+    return () => clearTimeout(timer);
+  }, [event.duration, onDismiss]);
+
+  const getEventStyle = () => {
+    switch (event.type) {
+      case 'critical':
+        return 'bg-red-950/80 border-red-600/50 text-red-300';
+      case 'warning':
+        return 'bg-amber-950/60 border-amber-600/40 text-amber-300';
+      case 'success':
+        return 'bg-emerald-950/60 border-emerald-600/40 text-emerald-300';
+      default:
+        return 'bg-zinc-900/80 border-zinc-600/40 text-zinc-300';
+    }
+  };
+
+  return (
+    <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-50 px-6 py-2 border rounded font-mono text-xs uppercase tracking-wider animate-fade-in-down ${getEventStyle()}`}>
+      {event.message}
+    </div>
+  );
+}
+
+function OperationalEventsDisplay() {
+  const { events } = useWorkspaceState();
+  const [visibleEvents, setVisibleEvents] = useState<OperationalEvent[]>([]);
+
+  useEffect(() => {
+    if (events.length > 0) {
+      setVisibleEvents([events[0]]);
+    }
+  }, [events]);
+
+  const dismissEvent = () => {
+    setVisibleEvents([]);
+  };
+
+  if (visibleEvents.length === 0) return null;
+
+  return (
+    <>
+      {visibleEvents.map(event => (
+        <EventBanner key={event.id} event={event} onDismiss={dismissEvent} />
+      ))}
+    </>
+  );
+}
+
+function ActiveFocusIndicator() {
+  const { activeFocus, context } = useWorkspaceState();
+  
+  if (activeFocus.primary === 'none') return null;
+
+  const focusLabel = {
+    mission: 'MISSION FOCUS',
+    mentor: 'MENTOR FOCUS',
+    roadmap: 'ROADMAP FOCUS',
+    telemetry: 'TELEMETRY FOCUS',
+  };
+
+  return (
+    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-none">
+      <div className={`font-mono text-[10px] uppercase tracking-widest px-4 py-1.5 border rounded ${
+        context.environmentTone === 'critical'
+          ? 'border-red-600/40 text-red-400/60 bg-red-950/30'
+          : context.environmentTone === 'tense'
+            ? 'border-amber-600/40 text-amber-400/60 bg-amber-950/20'
+            : 'border-zinc-600/40 text-zinc-400/60 bg-zinc-900/30'
+      }`}>
+        {focusLabel[activeFocus.primary]} • {activeFocus.reason}
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceContent() {
-  const { state, completeBoot, data, intelligence } = useWorkspaceState();
+  const { state, completeBoot, data, context, isPanelActive } = useWorkspaceState();
   const [showBoot, setShowBoot] = useState(true);
 
-  const { environmentTone, operationalPressure, daysBehindRoadmap } = intelligence;
+  const { environmentTone, operationalPressure, daysBehindRoadmap } = context;
 
   useEffect(() => {
     const hasVisited = typeof window !== 'undefined' && 
@@ -69,16 +148,47 @@ function WorkspaceContent() {
     }
   };
 
+  const getSyncColor = () => {
+    switch (environmentTone) {
+      case 'critical':
+        return {
+          bracket: 'border-red-700/40',
+          indicator: 'bg-red-500',
+          glow: 'shadow-red-500/10',
+        };
+      case 'tense':
+        return {
+          bracket: 'border-amber-700/40',
+          indicator: 'bg-amber-500',
+          glow: 'shadow-amber-500/10',
+        };
+      case 'calm':
+        return {
+          bracket: 'border-emerald-700/40',
+          indicator: 'bg-emerald-500',
+          glow: 'shadow-emerald-500/10',
+        };
+      default:
+        return {
+          bracket: 'border-zinc-700/30',
+          indicator: 'bg-zinc-500',
+          glow: 'shadow-zinc-500/10',
+        };
+    }
+  };
+
+  const syncColors = getSyncColor();
+
   const getPressureIndicator = () => {
     switch (operationalPressure) {
       case 'critical':
-        return { text: 'CRITICAL', color: 'text-red-500', glow: 'bg-red-500' };
+        return { text: 'CRITICAL', color: 'text-red-500' };
       case 'high':
-        return { text: 'ELEVATED', color: 'text-amber-500', glow: 'bg-amber-500' };
+        return { text: 'ELEVATED', color: 'text-amber-500' };
       case 'medium':
-        return { text: 'MODERATE', color: 'text-zinc-400', glow: 'bg-zinc-500' };
+        return { text: 'MODERATE', color: 'text-zinc-400' };
       default:
-        return { text: 'NOMINAL', color: 'text-emerald-600', glow: 'bg-emerald-500' };
+        return { text: 'NOMINAL', color: 'text-emerald-600' };
     }
   };
 
@@ -90,18 +200,18 @@ function WorkspaceContent() {
       <div className="absolute inset-0 pointer-events-none">
         {environmentTone === 'critical' && (
           <>
-            <div className="absolute top-0 left-0 w-full h-1 bg-red-500/20 animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-red-500/10 animate-pulse" />
+            <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500/20 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-500/10 animate-pulse" />
           </>
         )}
         <div className="absolute inset-0" />
-        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl ${
+        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl ${syncColors.glow} ${
           environmentTone === 'critical' ? 'bg-red-500/10' :
           environmentTone === 'tense' ? 'bg-amber-500/8' :
           environmentTone === 'calm' ? 'bg-emerald-500/5' :
           'bg-red-500/3'
         } animate-pulse-slow`} />
-        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl ${
+        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl ${syncColors.glow} ${
           environmentTone === 'critical' ? 'bg-red-500/10' :
           environmentTone === 'tense' ? 'bg-amber-500/8' :
           environmentTone === 'calm' ? 'bg-emerald-500/5' :
@@ -123,28 +233,12 @@ function WorkspaceContent() {
         />
       </div>
 
-      {/* Corner Brackets - Adaptive Color */}
+      {/* Synchronized Corner Brackets */}
       <div className="absolute inset-4 pointer-events-none">
-        <div className={`absolute top-0 left-0 w-12 h-12 border-l border-t ${
-          environmentTone === 'critical' ? 'border-red-700/40' :
-          environmentTone === 'tense' ? 'border-amber-700/40' :
-          'border-zinc-700/30'
-        }`} />
-        <div className={`absolute top-0 right-0 w-12 h-12 border-r border-t ${
-          environmentTone === 'critical' ? 'border-red-700/40' :
-          environmentTone === 'tense' ? 'border-amber-700/40' :
-          'border-zinc-700/30'
-        }`} />
-        <div className={`absolute bottom-0 left-0 w-12 h-12 border-l border-b ${
-          environmentTone === 'critical' ? 'border-red-700/40' :
-          environmentTone === 'tense' ? 'border-amber-700/40' :
-          'border-zinc-700/30'
-        }`} />
-        <div className={`absolute bottom-0 right-0 w-12 h-12 border-r border-b ${
-          environmentTone === 'critical' ? 'border-red-700/40' :
-          environmentTone === 'tense' ? 'border-amber-700/40' :
-          'border-zinc-700/30'
-        }`} />
+        <div className={`absolute top-0 left-0 w-12 h-12 border-l border-t ${syncColors.bracket}`} />
+        <div className={`absolute top-0 right-0 w-12 h-12 border-r border-t ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 left-0 w-12 h-12 border-l border-b ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 right-0 w-12 h-12 border-r border-b ${syncColors.bracket}`} />
       </div>
 
       {/* Ambient Scanline */}
@@ -152,10 +246,10 @@ function WorkspaceContent() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-100 to-transparent animate-scanline-slow" />
       </div>
 
-      {/* Status Indicators */}
+      {/* Status Indicators - Synchronized */}
       <div className="absolute top-6 left-6 flex items-center gap-4 pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${pressure.glow}/60 animate-pulse`} />
+          <span className={`w-2 h-2 rounded-full ${syncColors.indicator} ${operationalPressure === 'critical' ? 'animate-pulse' : ''}`} />
           <span className={`font-mono text-[10px] uppercase ${pressure.color}`}>
             {pressure.text}
           </span>
@@ -181,12 +275,16 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      {/* Workspace Panels */}
+      {/* Operational Events */}
+      <OperationalEventsDisplay />
+
+      {/* Workspace Panels with Active Focus */}
       <FloatingPanel
         id="mission-console"
         title="MISSION CONSOLE"
         icon="▸"
         initialPosition={defaultPositions['mission-console']}
+        isActive={isPanelActive('mission-console')}
       >
         <MissionConsole 
           tasks={data.tasks || []} 
@@ -199,6 +297,7 @@ function WorkspaceContent() {
         title="MENTOR SUBSYSTEM"
         icon="◆"
         initialPosition={defaultPositions['mentor-subsystem']}
+        isActive={isPanelActive('mentor-subsystem')}
       >
         <MentorSubsystem 
           pillarXP={data.pillarXP || {}}
@@ -212,6 +311,7 @@ function WorkspaceContent() {
         title="ROADMAP STATUS"
         icon="◈"
         initialPosition={defaultPositions['roadmap-status']}
+        isActive={isPanelActive('roadmap-status')}
       >
         <RoadmapStatus
           currentMonth={data.currentMonth || 1}
@@ -227,6 +327,7 @@ function WorkspaceContent() {
         title="SYSTEM TELEMETRY"
         icon="●"
         initialPosition={defaultPositions['system-telemetry']}
+        isActive={isPanelActive('system-telemetry')}
       >
         <SystemTelemetry
           streakCurrent={data.streakCurrent || 0}
@@ -236,6 +337,9 @@ function WorkspaceContent() {
           ctfCount={data.ctfCount || 0}
         />
       </FloatingPanel>
+
+      {/* Active Focus Indicator */}
+      <ActiveFocusIndicator />
 
       {/* Center Info - Adaptive Opacity */}
       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none ${
@@ -251,8 +355,12 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      {/* Bottom Status Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-zinc-950/60 border-t border-zinc-800/20 flex items-center justify-between px-6">
+      {/* Bottom Status Bar - Synchronized */}
+      <div className={`absolute bottom-0 left-0 right-0 h-8 border-t flex items-center justify-between px-6 ${
+        environmentTone === 'critical'
+          ? 'bg-zinc-950/80 border-red-900/20'
+          : 'bg-zinc-950/60 border-zinc-800/20'
+      }`}>
         <div className="flex items-center gap-4">
           <span className="font-mono text-[10px] text-zinc-600">ERA-OS v0.1.0</span>
           <span className="text-zinc-800">|</span>
@@ -260,7 +368,7 @@ function WorkspaceContent() {
             {pressure.text}
           </span>
           <span className="text-zinc-800">|</span>
-          <span className="font-mono text-[10px] text-emerald-600/60">● OPERATIONAL</span>
+          <span className={`font-mono text-[10px] ${syncColors.indicator.replace('bg-', 'text-')}/60`}>● OPERATIONAL</span>
         </div>
         <div className="font-mono text-[10px] text-zinc-600">
           Drag panels • Click header to focus
@@ -285,6 +393,19 @@ function WorkspaceContent() {
         @keyframes pulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.5; }
+        }
+        @keyframes fade-in-down {
+          from { 
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+        .animate-fade-in-down {
+          animation: fade-in-down 0.3s ease-out;
         }
       `}</style>
     </div>

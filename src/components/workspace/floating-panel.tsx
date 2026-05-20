@@ -15,6 +15,7 @@ interface FloatingPanelProps {
   initialPosition?: Position;
   children: React.ReactNode;
   className?: string;
+  isActive?: boolean;
 }
 
 export function FloatingPanel({
@@ -24,8 +25,9 @@ export function FloatingPanel({
   initialPosition,
   children,
   className = '',
+  isActive = false,
 }: FloatingPanelProps) {
-  const { state, updatePanelPosition, bringToFront } = useWorkspaceState();
+  const { state, updatePanelPosition, bringToFront, context } = useWorkspaceState();
   const panelState = state.panels.find(p => p.id === id);
   
   const [localPosition, setLocalPosition] = useState<Position>(
@@ -38,6 +40,8 @@ export function FloatingPanel({
 
   const isFocused = state.focusedPanelId === id;
   const zIndex = panelState?.zIndex || 1;
+
+  const { environmentTone } = context;
 
   useEffect(() => {
     if (panelState && !isDragging) {
@@ -79,6 +83,48 @@ export function FloatingPanel({
 
   if (panelState?.isOpen === false) return null;
 
+  const getBorderColor = () => {
+    if (isActive) {
+      switch (environmentTone) {
+        case 'critical': return 'border-red-600/60';
+        case 'tense': return 'border-amber-600/50';
+        case 'calm': return 'border-emerald-600/50';
+        default: return 'border-zinc-600/60';
+      }
+    }
+    if (isFocused) {
+      return 'border-zinc-700/80';
+    }
+    return 'border-zinc-800/60';
+  };
+
+  const getHeaderStyle = () => {
+    if (isActive) {
+      switch (environmentTone) {
+        case 'critical': return 'bg-red-950/30 border-red-900/30';
+        case 'tense': return 'bg-amber-950/20 border-amber-900/30';
+        case 'calm': return 'bg-emerald-950/20 border-emerald-900/30';
+        default: return 'bg-zinc-900/60 border-zinc-800/40';
+      }
+    }
+    if (isFocused) {
+      return 'bg-zinc-900/60 border-zinc-700/40';
+    }
+    return 'hover:bg-zinc-900/50 border-zinc-800/40';
+  };
+
+  const getIndicatorColor = () => {
+    if (isActive) {
+      switch (environmentTone) {
+        case 'critical': return 'bg-red-500';
+        case 'tense': return 'bg-amber-500';
+        case 'calm': return 'bg-emerald-500';
+        default: return 'bg-zinc-400';
+      }
+    }
+    return 'bg-zinc-600';
+  };
+
   return (
     <div
       className={`
@@ -93,9 +139,9 @@ export function FloatingPanel({
         transition-all duration-200
         ${isDragging 
           ? 'shadow-2xl shadow-black/50 z-[100]' 
-          : isFocused
-            ? 'border-zinc-700/80 shadow-xl shadow-black/40'
-            : 'border-zinc-800/60 shadow-lg shadow-black/30'
+          : isActive
+            ? `shadow-lg shadow-black/40 ${getBorderColor()}`
+            : `border-zinc-800/60 shadow-lg shadow-black/30`
         }
         ${className}
       `}
@@ -120,22 +166,17 @@ export function FloatingPanel({
           cursor-grab
           ${isDragging ? 'cursor-grabbing' : ''}
           transition-colors duration-150
-          ${isFocused 
-            ? 'bg-zinc-900/60 border-zinc-700/40' 
-            : 'hover:bg-zinc-900/50 border-zinc-800/40'
-          }
+          ${getHeaderStyle()}
         `}
       >
         {icon && <span className="text-zinc-500 text-sm">{icon}</span>}
         <span className={`font-mono text-xs uppercase tracking-wider flex-1 ${
-          isFocused ? 'text-zinc-300' : 'text-zinc-400'
+          isActive ? 'text-zinc-300' : isFocused ? 'text-zinc-300' : 'text-zinc-400'
         }`}>
           {title}
         </span>
         <div className="flex items-center gap-1">
-          <span className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-            isFocused ? 'bg-emerald-500' : 'bg-zinc-600'
-          }`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${getIndicatorColor()} ${isActive ? 'animate-pulse' : ''}`} />
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
         </div>

@@ -1,7 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { computeWorkspaceIntelligence, WorkspaceIntelligence } from './workspace-intelligence';
+import { 
+  computeOperationalContext, 
+  computeFocus, 
+  generateOperationalEvents,
+  OperationalContext,
+  OperationalFocus,
+  OperationalEvent 
+} from './workspace-ecosystem';
 
 export interface PanelState {
   id: string;
@@ -33,7 +40,9 @@ interface WorkspaceState {
   focusedPanelId: string | null;
   bootComplete: boolean;
   data: WorkspaceData;
-  intelligence: WorkspaceIntelligence;
+  context: OperationalContext;
+  activeFocus: OperationalFocus;
+  events: OperationalEvent[];
 }
 
 interface WorkspaceContextType {
@@ -43,7 +52,10 @@ interface WorkspaceContextType {
   togglePanel: (id: string) => void;
   completeBoot: () => void;
   data: WorkspaceData;
-  intelligence: WorkspaceIntelligence;
+  context: OperationalContext;
+  activeFocus: OperationalFocus;
+  events: OperationalEvent[];
+  isPanelActive: (panelId: string) => boolean;
 }
 
 const defaultPanels: PanelState[] = [
@@ -55,7 +67,7 @@ const defaultPanels: PanelState[] = [
 
 const STORAGE_KEY = 'era-os-workspace-state';
 
-const defaultIntelligence: WorkspaceIntelligence = {
+const defaultContext: OperationalContext = {
   operationalPressure: 'low',
   mentorUrgency: 0,
   weakPillars: [],
@@ -66,6 +78,15 @@ const defaultIntelligence: WorkspaceIntelligence = {
   streakStatus: 'cold',
   completionRatio: 0,
   daysBehindRoadmap: 0,
+  missionLoad: 0,
+  readinessLevel: 100,
+  focusPillar: null,
+};
+
+const defaultFocus: OperationalFocus = {
+  primary: 'none',
+  reason: 'System balanced',
+  intensity: 0,
 };
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -82,12 +103,23 @@ export function WorkspaceProvider({
     focusedPanelId: null,
     bootComplete: false,
     data,
-    intelligence: defaultIntelligence,
+    context: defaultContext,
+    activeFocus: defaultFocus,
+    events: [],
   });
 
   useEffect(() => {
-    const intelligence = computeWorkspaceIntelligence(data);
-    setState(prev => ({ ...prev, data, intelligence }));
+    const context = computeOperationalContext(data);
+    const activeFocus = computeFocus(context);
+    const events = generateOperationalEvents(context);
+    
+    setState(prev => ({ 
+      ...prev, 
+      data, 
+      context,
+      activeFocus,
+      events,
+    }));
   }, [data]);
 
   useEffect(() => {
@@ -152,6 +184,16 @@ export function WorkspaceProvider({
     setState(prev => ({ ...prev, bootComplete: true }));
   }, []);
 
+  const isPanelActive = useCallback((panelId: string) => {
+    const panelMap: Record<string, string> = {
+      'mission-console': 'mission',
+      'mentor-subsystem': 'mentor',
+      'roadmap-status': 'roadmap',
+      'system-telemetry': 'telemetry',
+    };
+    return state.activeFocus.primary === panelMap[panelId];
+  }, [state.activeFocus]);
+
   return (
     <WorkspaceContext.Provider value={{
       state,
@@ -160,7 +202,10 @@ export function WorkspaceProvider({
       togglePanel,
       completeBoot,
       data: state.data,
-      intelligence: state.intelligence,
+      context: state.context,
+      activeFocus: state.activeFocus,
+      events: state.events,
+      isPanelActive,
     }}>
       {children}
     </WorkspaceContext.Provider>

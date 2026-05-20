@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkspaceState } from './workspace-state';
 
 interface Mission {
@@ -20,13 +20,15 @@ export function MissionConsole({
   tasks?: any[]; 
   currentMonth?: number 
 }) {
-  const { intelligence, data } = useWorkspaceState();
+  const { context, data } = useWorkspaceState();
   const { 
     weakPillars, 
     operationalPressure, 
     staleMissionCount,
-    daysBehindRoadmap 
-  } = intelligence;
+    daysBehindRoadmap,
+    missionLoad,
+    focusPillar,
+  } = context;
   
   const [missions, setMissions] = useState<Mission[]>([]);
   const [systemTime, setSystemTime] = useState<string>('--:--:--');

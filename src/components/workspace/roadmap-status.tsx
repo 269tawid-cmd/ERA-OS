@@ -22,8 +22,8 @@ export function RoadmapStatus({
   tasksCompleted = 0,
   totalTasks = 0
 }: RoadmapStatusProps) {
-  const { intelligence } = useWorkspaceState();
-  const { environmentTone, daysBehindRoadmap, completionRatio, backlogPressure } = intelligence;
+  const { context } = useWorkspaceState();
+  const { environmentTone, daysBehindRoadmap, completionRatio, readinessLevel } = context;
   
   const { percentage, daysRemaining, daysElapsed } = progress || {
     percentage: 0,

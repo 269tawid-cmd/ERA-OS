@@ -66,8 +66,8 @@ export function MentorSubsystem({
   streakCurrent?: number;
   currentMonth?: number;
 }) {
-  const { intelligence } = useWorkspaceState();
-  const { mentorUrgency, weakPillars, operationalPressure, streakStatus } = intelligence;
+  const { context } = useWorkspaceState();
+  const { mentorUrgency, weakPillars, operationalPressure, streakStatus, focusPillar } = context;
   
   const [insightIndex, setInsightIndex] = useState(0);
   const [insight, setInsight] = useState('');
@@ -129,10 +129,7 @@ export function MentorSubsystem({
       {/* AI Mentor Status with Context */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`relative flex h-2 w-2 ${
-            mentorTone === 'alert' ? '' :
-            mentorTone === 'warning' ? '' : ''
-          }`}>
+          <span className="relative flex h-2 w-2">
             <span className={`absolute inline-flex h-full w-full rounded-full ${
               mentorTone === 'alert' ? 'bg-red-500 opacity-75' :
               mentorTone === 'warning' ? 'bg-amber-500 opacity-75' :
@@ -181,6 +178,14 @@ export function MentorSubsystem({
               <span className="text-zinc-700">|</span>
               <span className="text-[9px] font-mono text-red-500/60">
                 {weakPillars[0]} WEAK
+              </span>
+            </>
+          )}
+          {focusPillar && weakPillars.includes(focusPillar) && (
+            <>
+              <span className="text-zinc-700">|</span>
+              <span className="text-[9px] font-mono text-amber-500/60">
+                FOCUS: {focusPillar}
               </span>
             </>
           )}
