@@ -1,48 +1,61 @@
-import { createClient } from '@/lib/supabase/server';
-import { getUser } from '@/lib/supabase/auth';
-import { redirect } from 'next/navigation';
-import { getMonthData, getRoadmapProgress } from '@/lib/roadmap';
-import { RoadmapTimeline, JourneyStatus } from '@/components/roadmap';
-import { Card, CardHeader, CardContent } from '@/components/ui';
-import type { TaskRow, UserProgressRow, LogRow, CtfEntryRow } from '@/lib/supabase/database.types';
-import type { Task, TaskOrigin, TaskCategory } from '@/types';
+import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/supabase/auth";
+import { redirect } from "next/navigation";
+import { getMonthData, getRoadmapProgress } from "@/lib/roadmap";
+import { RoadmapTimeline, JourneyStatus } from "@/components/roadmap";
+import { Card, CardHeader, CardContent } from "@/components/ui";
+import type {
+  TaskRow,
+  UserProgressRow,
+  LogRow,
+  CtfEntryRow,
+} from "@/lib/supabase/database.types";
+import type { Task, TaskOrigin, TaskCategory } from "@/types";
 
 export default async function RoadmapPage() {
   const user = await getUser();
 
   if (!user) {
-    redirect('/auth/login');
+    redirect("/auth/login");
   }
 
   const supabase = await createClient();
 
-  const { data: progress } = await supabase
-    .from('user_progress')
-    .select('*')
-    .eq('user_id', user.id)
-    .single() as { data: UserProgressRow | null };
+  const { data: progress } = (await supabase
+    .from("user_progress")
+    .select("*")
+    .eq("user_id", user.id)
+    .single()) as { data: UserProgressRow | null };
 
-  const { data: tasks } = await supabase
-    .from('tasks')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(50) as { data: TaskRow[] | null };
+  const { data: tasks } = (await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50)) as { data: TaskRow[] | null };
 
-  const { data: logs } = await supabase
-    .from('logs')
-    .select('*')
-    .eq('user_id', user.id) as { data: LogRow[] | null };
+  const { data: logs } = (await supabase
+    .from("logs")
+    .select("*")
+    .eq("user_id", user.id)) as { data: LogRow[] | null };
 
-  const { data: ctfEntries } = await supabase
-    .from('ctf_entries')
-    .select('*')
-    .eq('user_id', user.id) as { data: CtfEntryRow[] | null };
+  const { data: ctfEntries } = (await supabase
+    .from("ctf_entries")
+    .select("*")
+    .eq("user_id", user.id)) as { data: CtfEntryRow[] | null };
 
   const currentMonth = progress?.current_month || 1;
   const monthData = getMonthData(currentMonth);
-  const roadmapProgress = getRoadmapProgress(currentMonth, progress?.start_date);
-  const pillarXP = progress?.pillar_xp as Record<string, number> || { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 };
+  const roadmapProgress = getRoadmapProgress(
+    currentMonth,
+    progress?.start_date,
+  );
+  const pillarXP = (progress?.pillar_xp as Record<string, number>) || {
+    HACK: 0,
+    BUILD: 0,
+    AI: 0,
+    PRESENCE: 0,
+  };
 
   const taskList: Task[] = (tasks || []).map((t) => ({
     id: t.id,
@@ -60,12 +73,16 @@ export default async function RoadmapPage() {
     recurrence: t.recurrence ?? undefined,
     origin: (t as TaskRow & { origin: string }).origin as TaskOrigin,
     category: (t as TaskRow & { category: string }).category as TaskCategory,
-    source_template: (t as TaskRow & { source_template: string | null }).source_template ?? undefined,
-    generation_date: (t as TaskRow & { generation_date: string | null }).generation_date ?? undefined,
+    source_template:
+      (t as TaskRow & { source_template: string | null }).source_template ??
+      undefined,
+    generation_date:
+      (t as TaskRow & { generation_date: string | null }).generation_date ??
+      undefined,
     created_at: t.created_at,
   }));
 
-  const doneTasks = taskList.filter((t) => t.status === 'done');
+  const doneTasks = taskList.filter((t) => t.status === "done");
   const monthsWithCompletedTasks = [...new Set(doneTasks.map((t) => t.month))];
   const monthsCompleted = monthsWithCompletedTasks.length;
 
@@ -86,7 +103,9 @@ export default async function RoadmapPage() {
         <header className="mb-8">
           <div className="flex items-center gap-4 mb-2">
             <span className="font-mono text-sm text-zinc-500">era-os</span>
-            <span className="font-mono text-xs text-zinc-600">{'//'} roadmap</span>
+            <span className="font-mono text-xs text-zinc-600">
+              {"//"} roadmap
+            </span>
           </div>
           <h1 className="font-mono text-3xl font-bold text-zinc-100 tracking-tight">
             Hacker Era King Journey
@@ -123,7 +142,7 @@ export default async function RoadmapPage() {
         <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
           <CardHeader className="pb-3">
             <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
-              Current Phase: {monthData?.title || 'Unknown'}
+              Current Phase: {monthData?.title || "Unknown"}
             </h2>
           </CardHeader>
           <CardContent>

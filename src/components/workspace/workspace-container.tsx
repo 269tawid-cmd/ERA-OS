@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FloatingPanel } from './floating-panel';
 import { MissionConsole } from './mission-console';
 import { MentorSubsystem } from './mentor-subsystem';
@@ -222,10 +222,43 @@ function WorkspaceContent() {
 
   const pressure = getPressureIndicator();
 
+  /* ─── Cinematic Parallax Camera ─── */
+  const depthRef = useRef<HTMLDivElement>(null);
+  const cameraPos = useRef({ x: 0, y: 0 });
+  const targetPos = useRef({ x: 0, y: 0 });
+  const rafId = useRef<number>(0);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      targetPos.current = {
+        x: (e.clientX / window.innerWidth - 0.5) * 2,
+        y: (e.clientY / window.innerHeight - 0.5) * 2,
+      };
+    };
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+    const animate = () => {
+      cameraPos.current.x += (targetPos.current.x - cameraPos.current.x) * 0.06;
+      cameraPos.current.y += (targetPos.current.y - cameraPos.current.y) * 0.06;
+      const px = cameraPos.current.x;
+      const py = cameraPos.current.y;
+      if (depthRef.current) {
+        depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
+      }
+      rafId.current = requestAnimationFrame(animate);
+    };
+    rafId.current = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
+  }, []);
+
   return (
     <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
       {/* Cinematic Depth & Lighting System */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div ref={depthRef} className="absolute inset-0 pointer-events-none overflow-hidden will-change-transform">
         {/* 1. Vignette - dark edges for depth framing */}
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
         
@@ -306,6 +339,19 @@ function WorkspaceContent() {
             'bg-gradient-to-b from-zinc-500/10 via-zinc-500/3 to-transparent'
           } ${simulation.pressurePropagation.currentStage >= 2 ? 'animate-pulse-slow' : ''}`} />
         )}
+
+        {/* 9. Atmospheric dust / light pools — slow ambient drift */}
+        <div className="absolute inset-0 pointer-events-none animate-dust-drift opacity-[0.012]"
+          style={{
+            backgroundImage: `
+              radial-gradient(ellipse at 15% 25%, rgba(255,255,255,0.12) 0%, transparent 50%),
+              radial-gradient(ellipse at 75% 40%, rgba(255,255,255,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 40% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 88% 65%, rgba(255,255,255,0.05) 0%, transparent 50%)
+            `,
+            backgroundSize: '200% 200%',
+          }}
+        />
       </div>
 
       {/* Grid Overlay */}
@@ -567,6 +613,17 @@ function WorkspaceContent() {
         }
         .animate-fade-in-down {
           animation: fade-in-down 0.3s ease-out;
+        }
+        @keyframes dust-drift {
+          0% { background-position: 0% 0%; }
+          25% { background-position: 40% 30%; }
+          50% { background-position: 100% 60%; }
+          75% { background-position: 60% 20%; }
+          100% { background-position: 0% 0%; }
+        }
+        .animate-dust-drift {
+          animation: dust-drift 40s ease-in-out infinite;
+          will-change: background-position;
         }
       `}</style>
     </div>

@@ -36,6 +36,7 @@ export function FloatingPanel({
       : initialPosition || { x: 0, y: 0 }
   );
   const [isDragging, setIsDragging] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const offsetRef = useRef<Position>({ x: 0, y: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -168,9 +169,9 @@ export function FloatingPanel({
         boxShadow: '0 20px 60px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4)',
       };
     }
-    if (isActive) {
+    if (isHovered || isActive) {
       return {
-        boxShadow: '0 4px 16px -4px rgba(0,0,0,0.35), 0 12px 32px -8px rgba(0,0,0,0.25)',
+        boxShadow: '0 8px 24px -6px rgba(0,0,0,0.4), 0 20px 48px -12px rgba(0,0,0,0.3)',
       };
     }
     return {
@@ -181,10 +182,18 @@ export function FloatingPanel({
   const getEdgeLightColor = () => {
     if (isActive) {
       switch (environmentTone) {
-        case 'critical': return 'from-red-500/4';
-        case 'tense': return 'from-amber-500/4';
-        case 'calm': return 'from-emerald-500/4';
-        default: return 'from-blue-400/4';
+        case 'critical': return 'from-red-500/8';
+        case 'tense': return 'from-amber-500/8';
+        case 'calm': return 'from-emerald-500/8';
+        default: return 'from-blue-400/8';
+      }
+    }
+    if (isHovered) {
+      switch (environmentTone) {
+        case 'critical': return 'from-red-500/5';
+        case 'tense': return 'from-amber-500/5';
+        case 'calm': return 'from-emerald-500/5';
+        default: return 'from-blue-400/5';
       }
     }
     return 'from-transparent';
@@ -193,6 +202,8 @@ export function FloatingPanel({
   return (
     <div
       ref={panelRef}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`
         floating-panel
         absolute
