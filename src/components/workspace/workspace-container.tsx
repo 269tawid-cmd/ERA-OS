@@ -117,10 +117,18 @@ function ActiveFocusIndicator() {
 }
 
 function WorkspaceContent() {
-  const { state, completeBoot, data, context, isPanelActive } = useWorkspaceState();
+  const { state, completeBoot, data, context, lifecycle, continuity, forecast, simulation, isPanelActive } = useWorkspaceState();
   const [showBoot, setShowBoot] = useState(true);
 
-  const { environmentTone, operationalPressure, daysBehindRoadmap } = context;
+  const { 
+    environmentTone, 
+    operationalPressure, 
+    daysBehindRoadmap,
+    rhythmState,
+    fatigueLevel,
+    momentumScore,
+    operationalConfidence,
+  } = context;
 
   useEffect(() => {
     const hasVisited = typeof window !== 'undefined' && 
@@ -136,6 +144,12 @@ function WorkspaceContent() {
   }
 
   const getEnvironmentClass = () => {
+    if (rhythmState === 'momentum') {
+      return 'bg-gradient-to-b from-emerald-950/15 via-zinc-950 to-zinc-950';
+    }
+    if (rhythmState === 'overload' || rhythmState === 'fatigue') {
+      return 'bg-gradient-to-b from-amber-950/15 via-zinc-950 to-zinc-950';
+    }
     switch (environmentTone) {
       case 'critical':
         return 'bg-gradient-to-b from-red-950/20 via-zinc-950 to-zinc-950';
@@ -149,6 +163,20 @@ function WorkspaceContent() {
   };
 
   const getSyncColor = () => {
+    if (rhythmState === 'momentum') {
+      return {
+        bracket: 'border-emerald-700/40',
+        indicator: 'bg-emerald-500',
+        glow: 'shadow-emerald-500/10',
+      };
+    }
+    if (rhythmState === 'overload' || rhythmState === 'fatigue') {
+      return {
+        bracket: 'border-amber-700/40',
+        indicator: 'bg-amber-500',
+        glow: 'shadow-amber-500/10',
+      };
+    }
     switch (environmentTone) {
       case 'critical':
         return {
@@ -205,18 +233,47 @@ function WorkspaceContent() {
           </>
         )}
         <div className="absolute inset-0" />
-        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl ${syncColors.glow} ${
+        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl will-change-transform ${syncColors.glow} ${
           environmentTone === 'critical' ? 'bg-red-500/10' :
           environmentTone === 'tense' ? 'bg-amber-500/8' :
           environmentTone === 'calm' ? 'bg-emerald-500/5' :
           'bg-red-500/3'
         } animate-pulse-slow`} />
-        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl ${syncColors.glow} ${
+        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl will-change-transform ${syncColors.glow} ${
           environmentTone === 'critical' ? 'bg-red-500/10' :
           environmentTone === 'tense' ? 'bg-amber-500/8' :
           environmentTone === 'calm' ? 'bg-emerald-500/5' :
           'bg-amber-500/3'
         } animate-pulse-slow-delay`} />
+        {/* Continuity Identity Ambient Layer */}
+        {continuity.identity.totalOperationalDays > 5 && (
+          <div className={`absolute inset-0 transition-opacity duration-1000 ${
+            continuity.identity.dominantRhythm === 'momentum' ? 'opacity-[0.03] bg-gradient-to-t from-emerald-500/20 to-transparent' :
+            continuity.identity.dominantRhythm === 'recovery' ? 'opacity-[0.02] bg-gradient-to-t from-amber-500/15 to-transparent' :
+            continuity.identity.progressionTendency === 'declining' ? 'opacity-[0.02] bg-gradient-to-t from-red-500/15 to-transparent' :
+            'opacity-0'
+          }`} />
+        )}
+        {/* Forecast Trajectory Ambient Layer */}
+        {forecast.temporal.confidence > 30 && (
+          <div className={`absolute bottom-20 left-0 right-0 h-12 transition-opacity duration-1000 ${
+            forecast.trajectory.classification === 'Operational Saturation' ? 'opacity-[0.04] bg-gradient-to-t from-red-500/30 to-transparent' :
+            forecast.trajectory.classification === 'Drift Accumulation' ? 'opacity-[0.03] bg-gradient-to-t from-amber-500/20 to-transparent' :
+            forecast.trajectory.classification === 'Recovery Momentum' ? 'opacity-[0.03] bg-gradient-to-t from-amber-500/15 to-transparent' :
+            forecast.trajectory.classification === 'Sustainable Expansion' ? 'opacity-[0.04] bg-gradient-to-t from-emerald-500/25 to-transparent' :
+            forecast.trajectory.classification === 'Strategic Consolidation' ? 'opacity-[0.02] bg-gradient-to-t from-blue-500/15 to-transparent' :
+            'opacity-0'
+          }`} />
+        )}
+        {/* Pressure Propagation Edge Glow */}
+        {simulation.pressurePropagation.confidence > 30 && simulation.pressurePropagation.currentStage >= 1 && (
+          <div className={`absolute left-0 top-0 bottom-0 w-0.5 transition-all duration-1000 ${
+            simulation.pressurePropagation.source === 'overload' ? 'bg-gradient-to-b from-red-500/15 via-red-500/5 to-transparent' :
+            simulation.pressurePropagation.source === 'backlog' ? 'bg-gradient-to-b from-amber-500/15 via-amber-500/5 to-transparent' :
+            simulation.pressurePropagation.source === 'momentum' ? 'bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent' :
+            'bg-gradient-to-b from-zinc-500/10 via-zinc-500/3 to-transparent'
+          } ${simulation.pressurePropagation.currentStage >= 2 ? 'animate-pulse-slow' : ''}`} />
+        )}
       </div>
 
       {/* Grid Overlay */}
@@ -234,15 +291,15 @@ function WorkspaceContent() {
       </div>
 
       {/* Synchronized Corner Brackets */}
-      <div className="absolute inset-4 pointer-events-none">
-        <div className={`absolute top-0 left-0 w-12 h-12 border-l border-t ${syncColors.bracket}`} />
-        <div className={`absolute top-0 right-0 w-12 h-12 border-r border-t ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 left-0 w-12 h-12 border-l border-b ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 right-0 w-12 h-12 border-r border-b ${syncColors.bracket}`} />
+      <div className="absolute inset-3 pointer-events-none">
+        <div className={`absolute top-0 left-0 w-8 h-8 border-l border-t ${syncColors.bracket}`} />
+        <div className={`absolute top-0 right-0 w-8 h-8 border-r border-t ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 left-0 w-8 h-8 border-l border-b ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 right-0 w-8 h-8 border-r border-b ${syncColors.bracket}`} />
       </div>
 
       {/* Ambient Scanline */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.015]">
+      <div className="absolute inset-0 pointer-events-none opacity-[0.01]">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-100 to-transparent animate-scanline-slow" />
       </div>
 
@@ -263,6 +320,48 @@ function WorkspaceContent() {
           </div>
         )}
       </div>
+
+      {/* Strategic Status Indicator */}
+      {context.strategic?.progressionHealth !== undefined && (
+        <div className="absolute bottom-6 left-6 pointer-events-none">
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              context.strategic.progressionHealth > 70 ? 'bg-emerald-500' :
+              context.strategic.progressionHealth > 40 ? 'bg-amber-500' :
+              'bg-red-500'
+            }`} />
+            <span className={`font-mono text-[9px] uppercase tracking-wider ${
+              context.strategic.progressionHealth > 70 ? 'text-emerald-500/40' :
+              context.strategic.progressionHealth > 40 ? 'text-amber-500/40' :
+              'text-red-500/40'
+            }`}>
+              {context.strategic.progressionHealth > 70 ? 'Strategic' :
+               context.strategic.progressionHealth > 40 ? 'Transitional' : 'At Risk'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Operational Lifecycle Indicator */}
+      {lifecycle && (
+        <div className="absolute bottom-6 right-6 pointer-events-none">
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              lifecycle.phase === 'Expansion' ? 'bg-emerald-500' :
+              lifecycle.phase === 'Recovery' || lifecycle.phase === 'Stabilization' ? 'bg-amber-500' :
+              lifecycle.phase === 'DriftRisk' ? 'bg-red-500' :
+              'bg-zinc-500'
+            }`} />
+            <span className={`font-mono text-[9px] uppercase tracking-wider ${
+              lifecycle.confidence > 70 ? 'text-emerald-500/40' :
+              lifecycle.confidence > 40 ? 'text-amber-500/40' :
+              'text-zinc-500/40'
+            }`}>
+              {lifecycle.phase}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Time Display */}
       <div className="absolute top-6 right-6 pointer-events-none">
@@ -341,58 +440,84 @@ function WorkspaceContent() {
       {/* Active Focus Indicator */}
       <ActiveFocusIndicator />
 
-      {/* Center Info - Adaptive Opacity */}
+      {/* Center Info - Subtle Background Branding */}
       <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none ${
-        environmentTone === 'critical' ? 'opacity-20' : 'opacity-40'
+        environmentTone === 'critical' ? 'opacity-10' : 'opacity-25'
       }`}>
-        <div className="font-mono text-xs text-zinc-700 uppercase tracking-[0.3em] mb-2">
-          Era OS // Workspace
+        <div className="font-mono text-[9px] text-zinc-700 uppercase tracking-[0.3em] mb-1.5">
+          Era OS
         </div>
-        <div className={`font-mono text-4xl tracking-widest ${
+        <div className={`font-mono text-xl tracking-widest ${
           environmentTone === 'critical' ? 'text-red-900' : 'text-zinc-800'
         }`}>
           COMMAND CENTER
         </div>
       </div>
 
-      {/* Bottom Status Bar - Synchronized */}
-      <div className={`absolute bottom-0 left-0 right-0 h-8 border-t flex items-center justify-between px-6 ${
+      {/* Bottom Status Bar */}
+      <div className={`absolute bottom-0 left-0 right-0 h-7 border-t flex items-center justify-between px-4 ${
         environmentTone === 'critical'
           ? 'bg-zinc-950/80 border-red-900/20'
           : 'bg-zinc-950/60 border-zinc-800/20'
       }`}>
-        <div className="flex items-center gap-4">
-          <span className="font-mono text-[10px] text-zinc-600">ERA-OS v0.1.0</span>
+        <div className="flex items-center gap-2 text-[9px] font-mono">
+          <span className="text-zinc-600">ERA-OS v0.1.0</span>
           <span className="text-zinc-800">|</span>
-          <span className={`font-mono text-[10px] ${pressure.color}`}>
+          <span className={pressure.color}>
             {pressure.text}
           </span>
           <span className="text-zinc-800">|</span>
-          <span className={`font-mono text-[10px] ${syncColors.indicator.replace('bg-', 'text-')}/60`}>● OPERATIONAL</span>
+          <span className={`${syncColors.indicator.replace('bg-', 'text-')}/60`}>●</span>
+          {continuity.identity.totalOperationalDays > 5 && forecast.temporal.confidence > 30 && (
+            <>
+              <span className="text-zinc-800">|</span>
+              <span className={`${
+                forecast.trajectory.classification === 'Stable Progression' ? 'text-emerald-600/40' :
+                forecast.trajectory.classification === 'Sustainable Expansion' ? 'text-emerald-500/40' :
+                forecast.trajectory.classification === 'Recovery Momentum' ? 'text-amber-500/40' :
+                forecast.trajectory.classification === 'Drift Accumulation' ? 'text-amber-600/40' :
+                'text-red-500/40'
+              }`}>
+                {forecast.trajectory.classification}
+              </span>
+            </>
+          )}
+          {simulation.roadmapCompression.compressionRisk === 'high' && (
+            <>
+              <span className="text-zinc-800">|</span>
+              <span className="text-red-500/40">comp:{simulation.roadmapCompression.estimatedCompressionWeeks}w</span>
+            </>
+          )}
         </div>
-        <div className="font-mono text-[10px] text-zinc-600">
-          Drag panels • Click header to focus
+        <div className="font-mono text-[9px] text-zinc-700">
+          Drag · Click to focus
         </div>
       </div>
 
       <style jsx global>{`
+        .workspace-environment {
+          transform: translateZ(0);
+        }
         @keyframes scanline-slow {
           0% { transform: translateY(-100%); }
           100% { transform: translateY(100vh); }
         }
         .animate-scanline-slow {
           animation: scanline-slow 12s linear infinite;
+          will-change: transform;
         }
-        .animate-pulse-slow {
-          animation: pulse 6s ease-in-out infinite;
-        }
-        .animate-pulse-slow-delay {
-          animation: pulse 6s ease-in-out infinite;
-          animation-delay: 3s;
-        }
-        @keyframes pulse {
+        @keyframes pulse-subtle {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.5; }
+        }
+        .animate-pulse-slow {
+          animation: pulse-subtle 6s ease-in-out infinite;
+          will-change: opacity;
+        }
+        .animate-pulse-slow-delay {
+          animation: pulse-subtle 6s ease-in-out infinite;
+          animation-delay: 3s;
+          will-change: opacity;
         }
         @keyframes fade-in-down {
           from { 

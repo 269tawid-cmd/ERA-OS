@@ -37,6 +37,7 @@ export function FloatingPanel({
   );
   const [isDragging, setIsDragging] = useState(false);
   const offsetRef = useRef<Position>({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const isFocused = state.focusedPanelId === id;
   const zIndex = panelState?.zIndex || 1;
@@ -49,37 +50,73 @@ export function FloatingPanel({
     }
   }, [panelState?.x, panelState?.y, isDragging]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleDragStart = useCallback((clientX: number, clientY: number) => {
     bringToFront(id);
     setIsDragging(true);
     offsetRef.current = {
-      x: e.clientX - localPosition.x,
-      y: e.clientY - localPosition.y,
+      x: clientX - localPosition.x,
+      y: clientY - localPosition.y,
     };
   }, [id, localPosition, bringToFront]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - offsetRef.current.x;
-    const newY = e.clientY - offsetRef.current.y;
-    
+  const handleDragMove = useCallback((clientX: number, clientY: number) => {
+    const newX = clientX - offsetRef.current.x;
+    const newY = clientY - offsetRef.current.y;
     setLocalPosition({ x: newX, y: newY });
-  }, [isDragging]);
+  }, []);
 
-  const handleMouseUp = useCallback(() => {
+  const handleDragEnd = useCallback(() => {
     if (isDragging) {
       updatePanelPosition(id, localPosition.x, localPosition.y);
     }
     setIsDragging(false);
   }, [isDragging, id, localPosition, updatePanelPosition]);
 
-  const handleMouseLeave = useCallback(() => {
-    if (isDragging) {
-      updatePanelPosition(id, localPosition.x, localPosition.y);
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onMouseMove = (e: MouseEvent) => handleDragMove(e.clientX, e.clientY);
+    const onMouseUp = () => handleDragEnd();
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+    const onTouchEnd = () => handleDragEnd();
+
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+    document.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    handleDragStart(e.clientX, e.clientY);
+  }, [handleDragStart]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
     }
-    setIsDragging(false);
-  }, [isDragging, id, localPosition, updatePanelPosition]);
+  }, [handleDragStart]);
 
   if (panelState?.isOpen === false) return null;
 
@@ -127,21 +164,21 @@ export function FloatingPanel({
 
   return (
     <div
+      ref={panelRef}
       className={`
         floating-panel
         absolute
-        bg-zinc-950/90
+        bg-zinc-950/95
         border
-        backdrop-blur-md
         rounded-lg
         overflow-hidden
         select-none
-        transition-all duration-200
+        will-change-transform
         ${isDragging 
-          ? 'shadow-2xl shadow-black/50 z-[100]' 
+          ? 'shadow-2xl shadow-black/50 z-[100] transition-shadow duration-100' 
           : isActive
-            ? `shadow-lg shadow-black/40 ${getBorderColor()}`
-            : `border-zinc-800/60 shadow-lg shadow-black/30`
+            ? `shadow-lg shadow-black/40 transition-shadow duration-300 ${getBorderColor()}`
+            : `border-zinc-800/60 shadow-lg shadow-black/30 transition-shadow duration-300 hover:shadow-xl hover:shadow-black/40`
         }
         ${className}
       `}
@@ -154,14 +191,13 @@ export function FloatingPanel({
       }}
     >
       <div
+        ref={panelRef}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
         className={`
           panel-header
           flex items-center gap-2
-          px-4 py-3
+          px-4 py-2.5
           border-b
           cursor-grab
           ${isDragging ? 'cursor-grabbing' : ''}
@@ -170,8 +206,8 @@ export function FloatingPanel({
         `}
       >
         {icon && <span className="text-zinc-500 text-sm">{icon}</span>}
-        <span className={`font-mono text-xs uppercase tracking-wider flex-1 ${
-          isActive ? 'text-zinc-300' : isFocused ? 'text-zinc-300' : 'text-zinc-400'
+        <span className={`font-mono text-[10px] uppercase tracking-wider flex-1 ${
+          isActive || isFocused ? 'text-zinc-300' : 'text-zinc-500'
         }`}>
           {title}
         </span>
@@ -181,7 +217,7 @@ export function FloatingPanel({
           <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
         </div>
       </div>
-      <div className="panel-content p-4">
+      <div className="panel-content p-3.5">
         {children}
       </div>
     </div>

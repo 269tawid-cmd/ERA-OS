@@ -70,7 +70,7 @@ export function SystemTelemetry({
       <div className="flex items-center justify-between p-3 bg-zinc-900/30 border border-zinc-800/20 rounded">
         <div>
           <p className="font-mono text-[10px] text-zinc-600 uppercase">System Clock</p>
-          <p className="font-mono text-xl text-zinc-200 tracking-widest font-mono">{time}</p>
+          <p className="font-mono text-xl text-zinc-200 tracking-widest">{time}</p>
         </div>
         <div className="text-right">
           <p className="font-mono text-[10px] text-zinc-600 uppercase">Uptime</p>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useWorkspaceState } from './workspace-state';
+import type { Task } from '@/types';
 
 interface Mission {
   id: string;
@@ -11,47 +12,75 @@ interface Mission {
   pillar?: string;
   daysStale?: number;
   isOverdue?: boolean;
+  impactScore?: number;
+}
+
+interface TaskWithPriority extends Task {
+  priority: 'high' | 'medium' | 'low';
 }
 
 export function MissionConsole({ 
   tasks = [],
   currentMonth = 1 
 }: { 
-  tasks?: any[]; 
+  tasks?: Task[]; 
   currentMonth?: number 
 }) {
-  const { context, data } = useWorkspaceState();
+  const { context, memory, continuity, forecast, simulation } = useWorkspaceState();
   const { 
     weakPillars, 
     operationalPressure, 
     staleMissionCount,
     daysBehindRoadmap,
-    missionLoad,
-    focusPillar,
+    rhythmState,
+    momentumScore,
+    strategic,
   } = context;
   
-  const [missions, setMissions] = useState<Mission[]>([]);
   const [systemTime, setSystemTime] = useState<string>('--:--:--');
   
-  useEffect(() => {
+  const neglectedPillars = strategic?.neglectedPillars || [];
+  const primaryRecommendation = strategic?.primaryFocusRecommendation || '';
+  
+  const missions = useMemo(() => {
     const now = Date.now();
     const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
     
-    const processedMissions: Mission[] = tasks
+    return tasks
       .filter(t => t.status !== 'done')
       .map(t => {
-        const updatedAt = new Date(t.updated_at || t.created_at).getTime();
+        const updatedAt = new Date(t.created_at).getTime();
         const isStale = now - updatedAt > sevenDaysAgo;
         const daysStale = Math.floor((now - updatedAt) / (24 * 60 * 60 * 1000));
         
         const isOverdue = !!(t.due_date && new Date(t.due_date).getTime() < now);
         const isNeglected = weakPillars.includes(t.pillar);
+        const isPillarNeglected = neglectedPillars.includes(t.pillar as any);
         
-        let priority: 'high' | 'medium' | 'low' = (t.priority as string || 'medium') as any;
+        let priority: 'high' | 'medium' | 'low' = (t.priority as string || 'medium') as 'high' | 'medium' | 'low';
+        let impactScore = 0;
         
-        if (isOverdue) priority = 'high';
-        else if (isNeglected && isStale) priority = 'high';
-        else if (isStale && daysStale > 3) priority = 'medium';
+        if (isOverdue) {
+          priority = 'high';
+          impactScore += 50;
+        }
+        if (isNeglected && isStale) {
+          priority = 'high';
+          impactScore += 40;
+        }
+        if (isPillarNeglected) {
+          impactScore += 25;
+        }
+        if (t.status === 'in_progress') {
+          impactScore += 20;
+        }
+        if (rhythmState === 'momentum' && t.xp_value > 50) {
+          impactScore += 15;
+        }
+        if (isStale && daysStale > 3) {
+          priority = priority === 'low' ? 'medium' : priority;
+          impactScore += 10;
+        }
         
         const status: 'active' | 'pending' | 'stale' = 
           t.status === 'in_progress' 
@@ -66,6 +95,7 @@ export function MissionConsole({
           pillar: t.pillar,
           daysStale: isStale ? daysStale : undefined,
           isOverdue,
+          impactScore,
         } as Mission;
       })
       .sort((a, b) => {
@@ -73,12 +103,11 @@ export function MissionConsole({
         if (!a.isOverdue && b.isOverdue) return 1;
         if (a.priority === 'high' && b.priority !== 'high') return -1;
         if (a.priority !== 'high' && b.priority === 'high') return 1;
+        if (a.impactScore !== b.impactScore) return (b.impactScore || 0) - (a.impactScore || 0);
         return 0;
       })
       .slice(0, 6);
-    
-    setMissions(processedMissions);
-  }, [tasks, weakPillars]);
+  }, [tasks, weakPillars, neglectedPillars, rhythmState, momentumScore]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -141,6 +170,14 @@ export function MissionConsole({
   };
 
   const statusLine = getStatusLine();
+  
+  const showStrategicHint = rhythmState === 'momentum' || rhythmState === 'recovery' || neglectedPillars.length > 0;
+
+  const unfinishedChainCount = memory?.unfinishedMissionChains?.length || 0;
+  const showMissionArc = unfinishedChainCount > 0;
+  const missionArcText = showMissionArc
+    ? `${unfinishedChainCount} unfinished mission chain${unfinishedChainCount > 1 ? 's' : ''} — backlog pressure ${context.backlogPressure.toFixed(0)}%`
+    : '';
 
   return (
     <div className="space-y-3">
@@ -242,6 +279,98 @@ export function MissionConsole({
             <span className="text-amber-500/40">!</span>
             <span className="text-zinc-500">Neglected:</span>
             <span className="text-red-500/60">{weakPillars.join(', ')}</span>
+          </div>
+        </div>
+      )}
+      
+      {/* Strategic Hint */}
+      {showStrategicHint && primaryRecommendation && (
+        <div className="pt-2 border-t border-zinc-800/20">
+          <p className="font-mono text-[9px] text-zinc-600 leading-relaxed">
+            → {primaryRecommendation}
+          </p>
+        </div>
+      )}
+      
+      {/* Mission Arc Continuity */}
+      {showMissionArc && (
+        <div className="pt-2 border-t border-zinc-800/20">
+          <p className="font-mono text-[9px] text-zinc-500 leading-relaxed">
+            → {missionArcText}
+          </p>
+        </div>
+      )}
+
+      {/* Continuity Scores */}
+      {continuity && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 flex-wrap text-[8px] font-mono">
+            <span className="text-zinc-700">C</span>
+            <span className={continuity.scores.missionContinuityScore > 65 ? 'text-emerald-500/40' : continuity.scores.missionContinuityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
+              M:{continuity.scores.missionContinuityScore}
+            </span>
+            <span className={continuity.scores.strategicCoherenceScore > 65 ? 'text-emerald-500/40' : continuity.scores.strategicCoherenceScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
+              S:{continuity.scores.strategicCoherenceScore}
+            </span>
+            <span className={continuity.scores.operationalStabilityScore > 65 ? 'text-emerald-500/40' : continuity.scores.operationalStabilityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
+              O:{continuity.scores.operationalStabilityScore}
+            </span>
+            <span className={continuity.scores.executionContinuityScore > 65 ? 'text-emerald-500/40' : continuity.scores.executionContinuityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
+              E:{continuity.scores.executionContinuityScore}
+            </span>
+            {continuity.carryForward.pacingRecommendation !== 'maintain' && (
+              <span className={`${continuity.carryForward.pacingRecommendation === 'slow' ? 'text-amber-500/30' : 'text-emerald-500/30'}`}>
+                • {continuity.carryForward.pacingRecommendation}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Drift Forecast */}
+      {forecast?.temporal && forecast.temporal.confidence > 25 && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 flex-wrap">
+            {forecast.drift.driftRiskTrend !== 'stable' && (
+              <span className={`font-mono text-[8px] ${
+                forecast.drift.driftRiskTrend === 'increasing' ? 'text-amber-500/40' :
+                'text-emerald-500/40'
+              }`}>
+                drift {forecast.drift.driftRiskTrend}
+              </span>
+            )}
+            {forecast.drift.driftArrivalWeeks > 0 && forecast.drift.driftArrivalWeeks < 4 && (
+              <span className="font-mono text-[8px] text-amber-500/30">
+                drift risk ~{forecast.drift.driftArrivalWeeks}w
+              </span>
+            )}
+            {forecast.temporal.overloadProbability > 50 && (
+              <span className="font-mono text-[8px] text-red-500/30">
+                overload {forecast.temporal.overloadProbability}%
+              </span>
+            )}
+            <span className={`font-mono text-[7px] ${
+              forecast.temporal.confidence > 50 ? 'text-zinc-600' : 'text-zinc-700'
+            }`}>
+              fc:{forecast.temporal.confidence}%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Scenario Projection */}
+      {simulation?.scenarios && simulation.scenarios.length > 0 && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 flex-wrap">
+            {simulation.scenarios.slice(0, 2).map((s, i) => (
+              <span key={i} className={`font-mono text-[8px] ${
+                s.scenarioType === 'sustained_overload' || s.scenarioType === 'backlog_escalation' ? 'text-red-500/40' :
+                s.scenarioType === 'roadmap_compression' || s.scenarioType === 'recovery_pacing' ? 'text-amber-500/40' :
+                'text-emerald-500/40'
+              }`}>
+                {s.scenarioType} {Math.round(s.likelihood * 100)}%/{Math.round(s.confidence * 100)}%
+              </span>
+            ))}
           </div>
         </div>
       )}
