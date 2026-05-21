@@ -222,36 +222,48 @@ function WorkspaceContent() {
 
   const pressure = getPressureIndicator();
 
-  /* ─── Cinematic Parallax Camera ─── */
+  /* ─── Cinematic Parallax Camera (hydrate-safe) ─── */
   const depthRef = useRef<HTMLDivElement>(null);
   const cameraPos = useRef({ x: 0, y: 0 });
   const targetPos = useRef({ x: 0, y: 0 });
   const rafId = useRef<number>(0);
+  const mountedRef = useRef(false);
+  const reducedMotionRef = useRef(false);
 
   useEffect(() => {
+    mountedRef.current = true;
+    reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const onMouseMove = (e: MouseEvent) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       targetPos.current = {
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2,
+        x: w > 0 ? (e.clientX / w - 0.5) * 2 : 0,
+        y: h > 0 ? (e.clientY / h - 0.5) * 2 : 0,
       };
     };
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
 
     const animate = () => {
+      if (!mountedRef.current || reducedMotionRef.current) return;
+      if (!depthRef.current) {
+        rafId.current = requestAnimationFrame(animate);
+        return;
+      }
       cameraPos.current.x += (targetPos.current.x - cameraPos.current.x) * 0.06;
       cameraPos.current.y += (targetPos.current.y - cameraPos.current.y) * 0.06;
-      const px = cameraPos.current.x;
-      const py = cameraPos.current.y;
-      if (depthRef.current) {
-        depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
-      }
+      const px = isFinite(cameraPos.current.x) ? cameraPos.current.x : 0;
+      const py = isFinite(cameraPos.current.y) ? cameraPos.current.y : 0;
+      depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
       rafId.current = requestAnimationFrame(animate);
     };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
     rafId.current = requestAnimationFrame(animate);
 
     return () => {
+      mountedRef.current = false;
       window.removeEventListener('mousemove', onMouseMove);
-      if (rafId.current) cancelAnimationFrame(rafId.current);
+      cancelAnimationFrame(rafId.current);
     };
   }, []);
 
@@ -360,8 +372,8 @@ function WorkspaceContent() {
           className="w-full h-full"
           style={{
             backgroundImage: `
-              linear-gradient(zinc-500 1px, transparent 1px),
-              linear-gradient(90deg, zinc-500 1px, transparent 1px)
+              linear-gradient(#71717a 1px, transparent 1px),
+              linear-gradient(90deg, #71717a 1px, transparent 1px)
             `,
             backgroundSize: '60px 60px',
           }}

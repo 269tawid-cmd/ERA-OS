@@ -35,15 +35,23 @@ export function FloatingPanel({
       ? { x: panelState.x, y: panelState.y }
       : initialPosition || { x: 0, y: 0 }
   );
+  const positionRef = useRef(localPosition);
+  positionRef.current = localPosition;
+
   const [isDragging, setIsDragging] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const offsetRef = useRef<Position>({ x: 0, y: 0 });
   const panelRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
 
   const isFocused = state.focusedPanelId === id;
   const zIndex = panelState?.zIndex || 1;
 
   const { environmentTone } = context;
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (panelState && !isDragging) {
@@ -52,26 +60,30 @@ export function FloatingPanel({
   }, [panelState?.x, panelState?.y, isDragging]);
 
   const handleDragStart = useCallback((clientX: number, clientY: number) => {
+    if (!mountedRef.current) return;
     bringToFront(id);
     setIsDragging(true);
     offsetRef.current = {
-      x: clientX - localPosition.x,
-      y: clientY - localPosition.y,
+      x: clientX - positionRef.current.x,
+      y: clientY - positionRef.current.y,
     };
-  }, [id, localPosition, bringToFront]);
+  }, [id, bringToFront]);
 
   const handleDragMove = useCallback((clientX: number, clientY: number) => {
     const newX = clientX - offsetRef.current.x;
     const newY = clientY - offsetRef.current.y;
+    if (!isFinite(newX) || !isFinite(newY)) return;
     setLocalPosition({ x: newX, y: newY });
   }, []);
 
   const handleDragEnd = useCallback(() => {
+    if (!mountedRef.current) return;
+    const pos = positionRef.current;
     if (isDragging) {
-      updatePanelPosition(id, localPosition.x, localPosition.y);
+      updatePanelPosition(id, pos.x, pos.y);
     }
     setIsDragging(false);
-  }, [isDragging, id, localPosition, updatePanelPosition]);
+  }, [isDragging, id, updatePanelPosition]);
 
   useEffect(() => {
     if (!isDragging) return;
