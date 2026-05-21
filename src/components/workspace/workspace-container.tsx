@@ -176,6 +176,62 @@ function WorkspaceContent() {
     }
   }, [completeBoot]);
 
+  /* ─── Hydration-safe clock — never in render path ─── */
+  const [dateStr, setDateStr] = useState('');
+  useEffect(() => {
+    setDateStr(new Date().toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric'
+    }));
+  }, []);
+
+  /* ─── Cinematic Parallax Camera (declared unconditionally) ─── */
+  const depthRef = useRef<HTMLDivElement>(null);
+  const cameraPos = useRef({ x: 0, y: 0 });
+  const targetPos = useRef({ x: 0, y: 0 });
+  const rafId = useRef<number>(0);
+  const mountedRef = useRef(false);
+  const reducedMotionRef = useRef(false);
+
+  useEffect(() => {
+    console.debug('[cinematic] init');
+    mountedRef.current = true;
+    reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      targetPos.current = {
+        x: w > 0 ? (e.clientX / w - 0.5) * 2 : 0,
+        y: h > 0 ? (e.clientY / h - 0.5) * 2 : 0,
+      };
+    };
+
+    const animate = () => {
+      if (!mountedRef.current || reducedMotionRef.current) return;
+      if (!depthRef.current) {
+        rafId.current = requestAnimationFrame(animate);
+        return;
+      }
+      cameraPos.current.x += (targetPos.current.x - cameraPos.current.x) * 0.06;
+      cameraPos.current.y += (targetPos.current.y - cameraPos.current.y) * 0.06;
+      const px = isFinite(cameraPos.current.x) ? cameraPos.current.x : 0;
+      const py = isFinite(cameraPos.current.y) ? cameraPos.current.y : 0;
+      depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
+      rafId.current = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    rafId.current = requestAnimationFrame(animate);
+    console.debug('[cinematic] RAF start');
+
+    return () => {
+      console.debug('[cinematic] cleanup');
+      mountedRef.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, []);
+
   if (showBoot && !state.bootComplete) {
     return <BootSequence onComplete={() => setShowBoot(false)} />;
   }
@@ -258,59 +314,6 @@ function WorkspaceContent() {
   };
 
   const pressure = getPressureIndicator();
-
-  /* ─── Hydration-safe clock — never in render path ─── */
-  const [dateStr, setDateStr] = useState('');
-  useEffect(() => {
-    setDateStr(new Date().toLocaleDateString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric'
-    }));
-  }, []);
-
-  /* ─── Cinematic Parallax Camera (hydrate-safe) ─── */
-  const depthRef = useRef<HTMLDivElement>(null);
-  const cameraPos = useRef({ x: 0, y: 0 });
-  const targetPos = useRef({ x: 0, y: 0 });
-  const rafId = useRef<number>(0);
-  const mountedRef = useRef(false);
-  const reducedMotionRef = useRef(false);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const onMouseMove = (e: MouseEvent) => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      targetPos.current = {
-        x: w > 0 ? (e.clientX / w - 0.5) * 2 : 0,
-        y: h > 0 ? (e.clientY / h - 0.5) * 2 : 0,
-      };
-    };
-
-    const animate = () => {
-      if (!mountedRef.current || reducedMotionRef.current) return;
-      if (!depthRef.current) {
-        rafId.current = requestAnimationFrame(animate);
-        return;
-      }
-      cameraPos.current.x += (targetPos.current.x - cameraPos.current.x) * 0.06;
-      cameraPos.current.y += (targetPos.current.y - cameraPos.current.y) * 0.06;
-      const px = isFinite(cameraPos.current.x) ? cameraPos.current.x : 0;
-      const py = isFinite(cameraPos.current.y) ? cameraPos.current.y : 0;
-      depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
-      rafId.current = requestAnimationFrame(animate);
-    };
-
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    rafId.current = requestAnimationFrame(animate);
-
-    return () => {
-      mountedRef.current = false;
-      window.removeEventListener('mousemove', onMouseMove);
-      cancelAnimationFrame(rafId.current);
-    };
-  }, []);
 
   return (
     <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
