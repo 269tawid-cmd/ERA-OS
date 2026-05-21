@@ -224,47 +224,79 @@ function WorkspaceContent() {
 
   return (
     <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
-      {/* Adaptive Ambient Background */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* Cinematic Depth & Lighting System */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* 1. Vignette - dark edges for depth framing */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
+        
+        {/* 2. Bottom fog - ground plane darkness */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.3) 100%)' }} />
+        
+        {/* 3. Top atmosphere - ceiling shadow */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, transparent 35%)' }} />
+        
+        {/* 4. Side shadow zones */}
+        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.12) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.12) 100%)' }} />
+        
+        {/* 5. Cinematic Cool Ambient - soft overhead light */}
+        <div className={`absolute inset-0 transition-opacity duration-1500 animate-ambient-drift`} style={{ backgroundImage: `radial-gradient(ellipse at 50% 0%, ${
+          environmentTone === 'critical' ? 'rgba(59,130,246,0.04)' :
+          environmentTone === 'tense' ? 'rgba(59,130,246,0.05)' :
+          environmentTone === 'calm' ? 'rgba(52,211,153,0.06)' :
+          'rgba(59,130,246,0.05)'
+        } 0%, transparent 70%)` }} />
+        
+        {/* 6. Tactical Low Bounce - reflected light from lower edge */}
+        <div className="absolute inset-0 transition-opacity duration-1000" style={{ backgroundImage: `radial-gradient(ellipse at 50% 100%, ${
+          environmentTone === 'critical' ? 'rgba(239,68,68,0.08)' :
+          environmentTone === 'tense' ? 'rgba(245,158,11,0.06)' :
+          environmentTone === 'calm' ? 'rgba(52,211,153,0.03)' :
+          'rgba(239,68,68,0.02)'
+        } 0%, transparent 60%)` }} />
+        
+        {/* 7. Soft center focus guide */}
+        {environmentTone !== 'critical' && (
+          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.015) 0%, transparent 60%)' }} />
+        )}
+
+        {/* 8. Critical alert pulse bars */}
         {environmentTone === 'critical' && (
           <>
-            <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500/20 animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-500/10 animate-pulse" />
+            <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500/15 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-500/8 animate-pulse" />
           </>
         )}
-        <div className="absolute inset-0" />
-        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl will-change-transform ${syncColors.glow} ${
-          environmentTone === 'critical' ? 'bg-red-500/10' :
-          environmentTone === 'tense' ? 'bg-amber-500/8' :
-          environmentTone === 'calm' ? 'bg-emerald-500/5' :
-          'bg-red-500/3'
-        } animate-pulse-slow`} />
-        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl will-change-transform ${syncColors.glow} ${
-          environmentTone === 'critical' ? 'bg-red-500/10' :
-          environmentTone === 'tense' ? 'bg-amber-500/8' :
-          environmentTone === 'calm' ? 'bg-emerald-500/5' :
-          'bg-amber-500/3'
-        } animate-pulse-slow-delay`} />
+
         {/* Continuity Identity Ambient Layer */}
         {continuity.identity.totalOperationalDays > 5 && (
-          <div className={`absolute inset-0 transition-opacity duration-1000 ${
-            continuity.identity.dominantRhythm === 'momentum' ? 'opacity-[0.03] bg-gradient-to-t from-emerald-500/20 to-transparent' :
-            continuity.identity.dominantRhythm === 'recovery' ? 'opacity-[0.02] bg-gradient-to-t from-amber-500/15 to-transparent' :
-            continuity.identity.progressionTendency === 'declining' ? 'opacity-[0.02] bg-gradient-to-t from-red-500/15 to-transparent' :
-            'opacity-0'
-          }`} />
+          <div className="absolute inset-0 transition-opacity duration-1000" style={{
+            opacity: continuity.identity.dominantRhythm === 'momentum' ? 0.03 :
+                     continuity.identity.dominantRhythm === 'recovery' ? 0.02 :
+                     continuity.identity.progressionTendency === 'declining' ? 0.02 : 0,
+          }}>
+            <div className={`absolute inset-0 bg-gradient-to-t ${
+              continuity.identity.dominantRhythm === 'momentum' ? 'from-emerald-500/20' :
+              continuity.identity.dominantRhythm === 'recovery' ? 'from-amber-500/15' :
+              continuity.identity.progressionTendency === 'declining' ? 'from-red-500/15' :
+              'to-transparent'
+            } to-transparent`} />
+          </div>
         )}
+        
         {/* Forecast Trajectory Ambient Layer */}
         {forecast.temporal.confidence > 30 && (
-          <div className={`absolute bottom-20 left-0 right-0 h-12 transition-opacity duration-1000 ${
-            forecast.trajectory.classification === 'Operational Saturation' ? 'opacity-[0.04] bg-gradient-to-t from-red-500/30 to-transparent' :
-            forecast.trajectory.classification === 'Drift Accumulation' ? 'opacity-[0.03] bg-gradient-to-t from-amber-500/20 to-transparent' :
-            forecast.trajectory.classification === 'Recovery Momentum' ? 'opacity-[0.03] bg-gradient-to-t from-amber-500/15 to-transparent' :
-            forecast.trajectory.classification === 'Sustainable Expansion' ? 'opacity-[0.04] bg-gradient-to-t from-emerald-500/25 to-transparent' :
-            forecast.trajectory.classification === 'Strategic Consolidation' ? 'opacity-[0.02] bg-gradient-to-t from-blue-500/15 to-transparent' :
-            'opacity-0'
-          }`} />
+          <div className="absolute bottom-20 left-0 right-0 h-12 transition-opacity duration-1000" style={{ opacity: 0.03 }}>
+            <div className={`absolute inset-0 bg-gradient-to-t ${
+              forecast.trajectory.classification === 'Operational Saturation' ? 'from-red-500/30' :
+              forecast.trajectory.classification === 'Drift Accumulation' ? 'from-amber-500/20' :
+              forecast.trajectory.classification === 'Recovery Momentum' ? 'from-amber-500/15' :
+              forecast.trajectory.classification === 'Sustainable Expansion' ? 'from-emerald-500/25' :
+              forecast.trajectory.classification === 'Strategic Consolidation' ? 'from-blue-500/15' :
+              'to-transparent'
+            } to-transparent`} />
+          </div>
         )}
+
         {/* Pressure Propagation Edge Glow */}
         {simulation.pressurePropagation.confidence > 30 && simulation.pressurePropagation.currentStage >= 1 && (
           <div className={`absolute left-0 top-0 bottom-0 w-0.5 transition-all duration-1000 ${
@@ -506,17 +538,21 @@ function WorkspaceContent() {
           animation: scanline-slow 12s linear infinite;
           will-change: transform;
         }
+        @keyframes ambient-drift {
+          0%, 100% { opacity: 0.55; }
+          33% { opacity: 0.7; }
+          66% { opacity: 0.6; }
+        }
+        .animate-ambient-drift {
+          animation: ambient-drift 14s ease-in-out infinite;
+          will-change: opacity;
+        }
         @keyframes pulse-subtle {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.5; }
         }
         .animate-pulse-slow {
           animation: pulse-subtle 6s ease-in-out infinite;
-          will-change: opacity;
-        }
-        .animate-pulse-slow-delay {
-          animation: pulse-subtle 6s ease-in-out infinite;
-          animation-delay: 3s;
           will-change: opacity;
         }
         @keyframes fade-in-down {

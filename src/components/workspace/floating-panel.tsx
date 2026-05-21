@@ -162,23 +162,49 @@ export function FloatingPanel({
     return 'bg-zinc-600';
   };
 
+  const getShadowStyle = (): React.CSSProperties => {
+    if (isDragging) {
+      return {
+        boxShadow: '0 20px 60px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4)',
+      };
+    }
+    if (isActive) {
+      return {
+        boxShadow: '0 4px 16px -4px rgba(0,0,0,0.35), 0 12px 32px -8px rgba(0,0,0,0.25)',
+      };
+    }
+    return {
+      boxShadow: '0 2px 8px -4px rgba(0,0,0,0.3), 0 8px 24px -8px rgba(0,0,0,0.2)',
+    };
+  };
+
+  const getEdgeLightColor = () => {
+    if (isActive) {
+      switch (environmentTone) {
+        case 'critical': return 'from-red-500/4';
+        case 'tense': return 'from-amber-500/4';
+        case 'calm': return 'from-emerald-500/4';
+        default: return 'from-blue-400/4';
+      }
+    }
+    return 'from-transparent';
+  };
+
   return (
     <div
       ref={panelRef}
       className={`
         floating-panel
         absolute
-        bg-zinc-950/95
+        bg-gradient-to-b from-zinc-950/95 to-zinc-950/90
         border
         rounded-lg
         overflow-hidden
         select-none
         will-change-transform
         ${isDragging 
-          ? 'shadow-2xl shadow-black/50 z-[100] transition-shadow duration-100' 
-          : isActive
-            ? `shadow-lg shadow-black/40 transition-shadow duration-300 ${getBorderColor()}`
-            : `border-zinc-800/60 shadow-lg shadow-black/30 transition-shadow duration-300 hover:shadow-xl hover:shadow-black/40`
+          ? 'z-[100] transition-shadow duration-100' 
+          : `transition-shadow duration-300 ${getBorderColor()}`
         }
         ${className}
       `}
@@ -188,10 +214,14 @@ export function FloatingPanel({
         minWidth: '320px',
         maxWidth: '420px',
         zIndex,
+        ...getShadowStyle(),
       }}
     >
+      {/* Environmental light bleed overlay */}
+      <div className={`absolute inset-0 rounded-lg pointer-events-none bg-gradient-to-b ${getEdgeLightColor()} to-transparent transition-opacity duration-700`} />
+      {/* Panel surface texture */}
+      <div className="absolute inset-0 rounded-lg pointer-events-none opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)' }} />
       <div
-        ref={panelRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         className={`
