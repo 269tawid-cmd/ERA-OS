@@ -39,7 +39,7 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
         <div className="font-mono text-sm text-zinc-500 animate-fade-out">
           <span className="text-emerald-500">●</span> OPERATIONAL
         </div>
-        <style jsx>{`
+        <style>{`
           @keyframes fade-out {
             0% { opacity: 1; }
             100% { opacity: 0; }

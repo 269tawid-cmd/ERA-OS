@@ -555,7 +555,7 @@ export function MentorSubsystem({
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from { opacity: 0.5; }
           to { opacity: 1; }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Component, useState, useEffect, useRef, type ReactNode } from 'react';
 import { FloatingPanel } from './floating-panel';
 import { MissionConsole } from './mission-console';
 import { MentorSubsystem } from './mentor-subsystem';
@@ -116,6 +116,43 @@ function ActiveFocusIndicator() {
   );
 }
 
+/* ─── Tone-safe color lookups (never produce invalid CSS) ─── */
+const AMBIENT_COLORS: Record<string, string> = {
+  critical: 'rgba(59,130,246,0.04)',
+  tense: 'rgba(59,130,246,0.05)',
+  calm: 'rgba(52,211,153,0.06)',
+  normal: 'rgba(59,130,246,0.05)',
+};
+
+const BOUNCE_COLORS: Record<string, string> = {
+  critical: 'rgba(239,68,68,0.08)',
+  tense: 'rgba(245,158,11,0.06)',
+  calm: 'rgba(52,211,153,0.03)',
+  normal: 'rgba(239,68,68,0.02)',
+};
+
+function toneColor(map: Record<string, string>, tone: string): string {
+  return map[tone] ?? map.normal ?? 'rgba(59,130,246,0.05)';
+}
+
+/* ─── Isolate cinematic render failures ─── */
+class CinematicErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[CinematicErrorBoundary] disabled cinematic layers:', error.message);
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 function WorkspaceContent() {
   const { state, completeBoot, data, context, lifecycle, continuity, forecast, simulation, isPanelActive } = useWorkspaceState();
   const [showBoot, setShowBoot] = useState(true);
@@ -222,6 +259,14 @@ function WorkspaceContent() {
 
   const pressure = getPressureIndicator();
 
+  /* ─── Hydration-safe clock — never in render path ─── */
+  const [dateStr, setDateStr] = useState('');
+  useEffect(() => {
+    setDateStr(new Date().toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric'
+    }));
+  }, []);
+
   /* ─── Cinematic Parallax Camera (hydrate-safe) ─── */
   const depthRef = useRef<HTMLDivElement>(null);
   const cameraPos = useRef({ x: 0, y: 0 });
@@ -269,7 +314,8 @@ function WorkspaceContent() {
 
   return (
     <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
-      {/* Cinematic Depth & Lighting System */}
+      {/* Cinematic Depth & Lighting System (error-isolated) */}
+      <CinematicErrorBoundary>
       <div ref={depthRef} className="absolute inset-0 pointer-events-none overflow-hidden will-change-transform">
         {/* 1. Vignette - dark edges for depth framing */}
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
@@ -284,20 +330,10 @@ function WorkspaceContent() {
         <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.12) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.12) 100%)' }} />
         
         {/* 5. Cinematic Cool Ambient - soft overhead light */}
-        <div className={`absolute inset-0 transition-opacity duration-1500 animate-ambient-drift`} style={{ backgroundImage: `radial-gradient(ellipse at 50% 0%, ${
-          environmentTone === 'critical' ? 'rgba(59,130,246,0.04)' :
-          environmentTone === 'tense' ? 'rgba(59,130,246,0.05)' :
-          environmentTone === 'calm' ? 'rgba(52,211,153,0.06)' :
-          'rgba(59,130,246,0.05)'
-        } 0%, transparent 70%)` }} />
+        <div className={`absolute inset-0 transition-opacity duration-[1500ms] animate-ambient-drift`} style={{ backgroundImage: `radial-gradient(ellipse at 50% 0%, ${toneColor(AMBIENT_COLORS, environmentTone)} 0%, transparent 70%)` }} />
         
         {/* 6. Tactical Low Bounce - reflected light from lower edge */}
-        <div className="absolute inset-0 transition-opacity duration-1000" style={{ backgroundImage: `radial-gradient(ellipse at 50% 100%, ${
-          environmentTone === 'critical' ? 'rgba(239,68,68,0.08)' :
-          environmentTone === 'tense' ? 'rgba(245,158,11,0.06)' :
-          environmentTone === 'calm' ? 'rgba(52,211,153,0.03)' :
-          'rgba(239,68,68,0.02)'
-        } 0%, transparent 60%)` }} />
+        <div className="absolute inset-0 transition-opacity duration-1000" style={{ backgroundImage: `radial-gradient(ellipse at 50% 100%, ${toneColor(BOUNCE_COLORS, environmentTone)} 0%, transparent 60%)` }} />
         
         {/* 7. Soft center focus guide */}
         {environmentTone !== 'critical' && (
@@ -365,6 +401,7 @@ function WorkspaceContent() {
           }}
         />
       </div>
+      </CinematicErrorBoundary>
 
       {/* Grid Overlay */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.02]">
@@ -453,14 +490,10 @@ function WorkspaceContent() {
         </div>
       )}
 
-      {/* Time Display */}
+      {/* Time Display (hydration-safe — set after mount) */}
       <div className="absolute top-6 right-6 pointer-events-none">
         <div className="font-mono text-xs text-zinc-600 uppercase tracking-widest">
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'short',
-            month: 'short', 
-            day: 'numeric' 
-          })}
+          {dateStr}
         </div>
       </div>
 
@@ -584,7 +617,7 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .workspace-environment {
           transform: translateZ(0);
         }
