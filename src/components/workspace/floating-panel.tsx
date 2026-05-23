@@ -4,6 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWorkspaceState } from './workspace-state';
 import { SUBSYSTEM_IDENTITY } from '@/lib/constants/operational-language';
 
+type DepthLevel = 0 | 1 | 2;
+
 interface Position {
   x: number;
   y: number;
@@ -26,7 +28,69 @@ interface FloatingPanelProps {
   children: React.ReactNode;
   className?: string;
   isActive?: boolean;
+  depth?: DepthLevel;
 }
+
+const DEPTH_CONFIG: Record<DepthLevel, {
+  glass: string;
+  glassActive: Record<string, string>;
+  glassDrag: string;
+  blur: string;
+  glowFactor: number;
+  occlusion: number;
+  borderOpacity: number;
+  reflectionOpacity: number;
+  translateZ: string;
+}> = {
+  0: {
+    glass: 'from-zinc-950/55 to-zinc-950/50',
+    glassActive: {
+      critical: 'from-red-950/45 to-zinc-950/40',
+      tense: 'from-amber-950/40 to-zinc-950/35',
+      calm: 'from-emerald-950/35 to-zinc-950/30',
+      default: 'from-zinc-950/50 to-zinc-950/45',
+    },
+    glassDrag: 'from-zinc-950/75 to-zinc-950/70',
+    blur: 'backdrop-blur-[8px]',
+    glowFactor: 1.0,
+    occlusion: 0.50,
+    borderOpacity: 0.06,
+    reflectionOpacity: 0.06,
+    translateZ: 'translateZ(40px)',
+  },
+  1: {
+    glass: 'from-zinc-950/40 to-zinc-950/35',
+    glassActive: {
+      critical: 'from-red-950/35 to-zinc-950/30',
+      tense: 'from-amber-950/30 to-zinc-950/25',
+      calm: 'from-emerald-950/25 to-zinc-950/20',
+      default: 'from-zinc-950/35 to-zinc-950/30',
+    },
+    glassDrag: 'from-zinc-950/65 to-zinc-950/60',
+    blur: 'backdrop-blur-[12px]',
+    glowFactor: 0.65,
+    occlusion: 0.30,
+    borderOpacity: 0.04,
+    reflectionOpacity: 0.04,
+    translateZ: 'translateZ(0px)',
+  },
+  2: {
+    glass: 'from-zinc-950/28 to-zinc-950/22',
+    glassActive: {
+      critical: 'from-red-950/25 to-zinc-950/20',
+      tense: 'from-amber-950/20 to-zinc-950/15',
+      calm: 'from-emerald-950/18 to-zinc-950/13',
+      default: 'from-zinc-950/22 to-zinc-950/18',
+    },
+    glassDrag: 'from-zinc-950/50 to-zinc-950/45',
+    blur: 'backdrop-blur-[16px]',
+    glowFactor: 0.4,
+    occlusion: 0.18,
+    borderOpacity: 0.025,
+    reflectionOpacity: 0.025,
+    translateZ: 'translateZ(-30px)',
+  },
+};
 
 export function FloatingPanel({
   id,
@@ -36,6 +100,7 @@ export function FloatingPanel({
   children,
   className = '',
   isActive = false,
+  depth = 1,
 }: FloatingPanelProps) {
   const { state, updatePanelPosition, bringToFront, context } = useWorkspaceState();
   const panelState = state.panels.find(p => p.id === id);
@@ -58,7 +123,6 @@ export function FloatingPanel({
 
   const { environmentTone } = context;
 
-  /* ─── Dynamic subsystem insignia ─── */
   const subsystem = SUBSYSTEM_IDENTITY.find(s => s.label === id);
   const displayGlyph = isFocused
     ? (subsystem?.stateMarkers.focused || '◆')
@@ -150,55 +214,59 @@ export function FloatingPanel({
 
   if (panelState?.isOpen === false) return null;
 
-  const getToneKey = () => {
-    if (isActive || isFocused) return environmentTone;
-    return 'default';
+  const cfg = DEPTH_CONFIG[depth];
+
+  const getGlassBg = () => {
+    if (isDragging) return cfg.glassDrag;
+    if (isActive) return cfg.glassActive[environmentTone] || cfg.glassActive.default;
+    return cfg.glass;
   };
 
   const getEdgeGlow = (): React.CSSProperties => {
-    const tone = environmentTone;
     const active = isActive || isFocused;
-    const color = active
-      ? tone === 'critical' ? 'rgba(220,50,50,0.15)' :
-        tone === 'tense' ? 'rgba(200,120,30,0.12)' :
-        tone === 'calm' ? 'rgba(50,180,120,0.1)' :
-        'rgba(100,120,160,0.1)'
-      : 'rgba(100,120,160,0.04)';
-    const dragColor = tone === 'critical' ? 'rgba(220,50,50,0.2)' :
-      tone === 'tense' ? 'rgba(200,120,30,0.18)' :
-      tone === 'calm' ? 'rgba(50,180,120,0.15)' :
-      'rgba(100,120,160,0.15)';
+    const tone = environmentTone;
+
+    const toneColor = active
+      ? tone === 'critical' ? 'rgba(220,50,50,' :
+        tone === 'tense' ? 'rgba(200,120,30,' :
+        tone === 'calm' ? 'rgba(50,180,120,' :
+        'rgba(100,120,160,'
+      : 'rgba(100,120,160,';
+
+    const gf = cfg.glowFactor;
+    const oc = cfg.occlusion;
 
     if (isDragging) {
       return {
-        boxShadow: `0 0 20px ${dragColor}, 0 0 60px ${dragColor.replace('0.15', '0.06')}`, 
+        boxShadow: [
+          `-1px -1px 8px rgba(255,255,255,0.025)`,
+          `1px 1px 4px rgba(0,0,0,0.12)`,
+          `0 0 20px ${toneColor}${0.2 * gf})`,
+          `0 15px 55px rgba(0,0,0,${oc + 0.15})`,
+        ].join(', '),
       };
     }
     if (active) {
       return {
-        boxShadow: `0 0 12px ${color}, 0 0 40px ${color.replace('0.12', '0.04')}`,
+        boxShadow: [
+          `-1px -1px 6px rgba(255,255,255,0.02)`,
+          `1px 1px 3px rgba(0,0,0,0.08)`,
+          `0 0 16px ${toneColor}${0.15 * gf})`,
+          `0 12px 40px rgba(0,0,0,${oc})`,
+        ].join(', '),
       };
     }
     return {
-      boxShadow: `0 0 8px ${color}`,
+      boxShadow: [
+        `-1px -1px 4px rgba(255,255,255,0.015)`,
+        `0 0 10px ${toneColor}${0.04 * gf})`,
+        `0 8px 30px rgba(0,0,0,${oc * 0.7})`,
+      ].join(', '),
     };
   };
 
-  const getGlassBg = () => {
-    if (isDragging) return 'from-zinc-950/65 to-zinc-950/60';
-    if (isActive) {
-      switch (environmentTone) {
-        case 'critical': return 'from-red-950/35 to-zinc-950/30';
-        case 'tense': return 'from-amber-950/30 to-zinc-950/25';
-        case 'calm': return 'from-emerald-950/25 to-zinc-950/20';
-        default: return 'from-zinc-950/45 to-zinc-950/40';
-      }
-    }
-    return 'from-zinc-950/40 to-zinc-950/35';
-  };
-
-  const edgeGlow = getEdgeGlow();
   const glassBg = getGlassBg();
+  const edgeGlow = getEdgeGlow();
 
   return (
     <div
@@ -211,8 +279,7 @@ export function FloatingPanel({
         rounded-sm
         overflow-hidden
         select-none
-        will-change-transform
-        backdrop-blur-[12px]
+        ${cfg.blur}
         bg-gradient-to-b ${glassBg}
         ${isDragging ? 'z-[100]' : ''}
         ${className}
@@ -220,20 +287,21 @@ export function FloatingPanel({
       style={{
         left: localPosition.x,
         top: localPosition.y,
-        minWidth: '320px',
+        minWidth: depth === 0 ? '340px' : '320px',
         maxWidth: '420px',
         zIndex,
+        transform: cfg.translateZ,
         ...edgeGlow,
       }}
     >
-      {/* Environmental reflection overlay */}
+      {/* Directional environmental reflection — stronger on upper-left */}
       <div className="absolute inset-0 rounded-sm pointer-events-none" style={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 45%, transparent 65%, rgba(255,255,255,0.015) 100%)',
+        background: `linear-gradient(135deg, rgba(255,255,255,${cfg.reflectionOpacity}) 0%, transparent 45%, transparent 65%, rgba(255,255,255,${cfg.reflectionOpacity * 0.35}) 100%)`,
         mixBlendMode: 'overlay',
       }} />
-      {/* Subtle edge light */}
+      {/* Subtle edge rim — thinner for recessed panels */}
       <div className="absolute inset-0 rounded-sm pointer-events-none" style={{
-        border: '1px solid rgba(255,255,255,0.04)',
+        border: `1px solid rgba(255,255,255,${cfg.borderOpacity})`,
       }} />
 
       <div
@@ -243,10 +311,11 @@ export function FloatingPanel({
           panel-header
           flex items-center gap-2
           px-3 py-2
-          border-b border-white/[0.04]
+          border-b
           cursor-grab
           ${isDragging ? 'cursor-grabbing' : ''}
         `}
+        style={{ borderColor: `rgba(255,255,255,${cfg.borderOpacity * 0.7})` }}
       >
         {icon && (
           <span className={`text-xs ${

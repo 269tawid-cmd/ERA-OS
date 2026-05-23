@@ -33,12 +33,18 @@ interface WorkspaceProps {
   data: WorkspaceData;
 }
 
+/* ─── Cinematic Composition — asymmetric staging, intentional dead space ─── */
+/* Mission Console dominates lower-left focus zone.                      */
+/* Roadmap sits upper-right, visually lighter.                           */
+/* Mentor stacks below Mission, mid-left.                                */
+/* Telemetry recessed mid-right — lowest visual weight.                  */
+/* Ops Evidence anchors bottom-left.                                     */
 const defaultPositions: Record<string, { x: number; y: number }> = {
-  'mission-console': { x: 40, y: 100 },
-  'mentor-subsystem': { x: 40, y: 380 },
-  'roadmap-status': { x: 400, y: 100 },
-  'system-telemetry': { x: 400, y: 380 },
-  'ops-evidence': { x: 40, y: 660 },
+  'mission-console': { x: 60, y: 80 },
+  'mentor-subsystem': { x: 60, y: 380 },
+  'roadmap-status': { x: 440, y: 60 },
+  'system-telemetry': { x: 400, y: 360 },
+  'ops-evidence': { x: 60, y: 600 },
 };
 
 
@@ -443,10 +449,11 @@ function WorkspaceContent() {
         }}
       />
 
-      {/* Layer 4 — Atmospheric haze / ground glow */}
+      {/* Layer 4 — Atmospheric haze / ground glow + directional key light */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
         background: `
           linear-gradient(to bottom, transparent 45%, ${sceneTone.tint} 65%, ${sceneTone.ground} 100%),
+          linear-gradient(135deg, rgba(80,120,200,0.008) 0%, transparent 45%, transparent 100%),
           radial-gradient(ellipse 80% 10% at 50% 82%, rgba(15,25,50,0.04) 0%, transparent 100%),
           radial-gradient(ellipse 60% 5% at 30% 78%, rgba(60,100,180,0.02) 0%, transparent 100%),
           radial-gradient(ellipse 40% 4% at 70% 80%, rgba(30,60,120,0.015) 0%, transparent 100%)
@@ -532,13 +539,14 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      {/* Workspace Panels */}
+      {/* Workspace Panels — depth-staged for spatial weight hierarchy */}
       <FloatingPanel
         id="mission-console"
         title="◇ M-SYS-01 · Mission Console"
         icon="◇"
         initialPosition={defaultPositions['mission-console']}
         isActive={isPanelActive('mission-console')}
+        depth={0}
       >
         <MissionConsole 
           tasks={data.tasks || []} 
@@ -552,6 +560,7 @@ function WorkspaceContent() {
         icon="○"
         initialPosition={defaultPositions['mentor-subsystem']}
         isActive={isPanelActive('mentor-subsystem')}
+        depth={1}
       >
         <MentorSubsystem 
           pillarXP={data.pillarXP || {}}
@@ -566,6 +575,7 @@ function WorkspaceContent() {
         icon="◈"
         initialPosition={defaultPositions['roadmap-status']}
         isActive={isPanelActive('roadmap-status')}
+        depth={1}
       >
         <RoadmapStatus
           currentMonth={data.currentMonth || 1}
@@ -582,6 +592,7 @@ function WorkspaceContent() {
         icon="●"
         initialPosition={defaultPositions['system-telemetry']}
         isActive={isPanelActive('system-telemetry')}
+        depth={2}
       >
         <SystemTelemetry
           streakCurrent={data.streakCurrent || 0}
@@ -598,6 +609,7 @@ function WorkspaceContent() {
         icon="◈"
         initialPosition={defaultPositions['ops-evidence']}
         isActive={isPanelActive('ops-evidence')}
+        depth={2}
       >
         <OpsEvidence />
       </FloatingPanel>
