@@ -156,14 +156,12 @@ export function MentorSubsystem({
   pillarXP = { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 },
   streakCurrent = 0,
   currentMonth = 1,
-  panelId = 'mentor-subsystem',
 }: { 
   pillarXP?: Record<string, number>;
   streakCurrent?: number;
   currentMonth?: number;
-  panelId?: string;
 }) {
-  const { context, memory, lifecycle, continuity, state } = useWorkspaceState();
+  const { context, memory, lifecycle, continuity } = useWorkspaceState();
   const { 
     mentorUrgency, 
     weakPillars, 
@@ -293,15 +291,12 @@ export function MentorSubsystem({
     setStrategicInsight(strategicMsg || '');
   }, [strategic, rhythmState, weakPillars]);
 
-  const isFocused = state.focusedPanelId === panelId;
-
   useEffect(() => {
-    if (!isFocused) return;
     const interval = setInterval(() => {
       setInsightIndex(prev => prev + 1);
     }, getInsightPace());
     return () => clearInterval(interval);
-  }, [rhythmState, isFocused]);
+  }, [rhythmState]);
 
   const mentorTone = getMentorTone();
 
