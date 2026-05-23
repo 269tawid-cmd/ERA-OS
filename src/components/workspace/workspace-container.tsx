@@ -107,16 +107,22 @@ function WorkspaceContent() {
     setSessionCount(newCount);
   }, [state.bootComplete]);
 
+  const [bootIsReturn, setBootIsReturn] = useState(false);
+  useEffect(() => {
+    setBootIsReturn(
+      typeof window !== 'undefined' &&
+      localStorage.getItem('era-os-workspace-state') !== null
+    );
+  }, []);
+
   if (showBoot && !state.bootComplete) {
-    const hasVisitedBefore = typeof window !== 'undefined' &&
-      localStorage.getItem('era-os-workspace-state') !== null;
     return (
       <BootSequence
         onComplete={() => {
           setShowBoot(false);
           completeBoot();
         }}
-        isReturnVisit={hasVisitedBefore}
+        isReturnVisit={bootIsReturn}
       />
     );
   }
