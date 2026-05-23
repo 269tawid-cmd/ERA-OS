@@ -115,65 +115,6 @@ function WorkspaceContent() {
     );
   }, []);
 
-  if (showBoot && !state.bootComplete) {
-    return (
-      <BootSequence
-        onComplete={() => {
-          setShowBoot(false);
-          completeBoot();
-        }}
-        isReturnVisit={bootIsReturn}
-      />
-    );
-  }
-
-  /* ─── Scene tone ─── */
-  const getSceneTone = () => {
-    if (rhythmState === 'momentum') {
-      return { ground: 'rgba(5,20,15,0.12)', beam: 'rgba(50,180,120,0.04)', tint: 'rgba(15,30,20,0.08)' };
-    }
-    if (rhythmState === 'overload' || rhythmState === 'fatigue') {
-      return { ground: 'rgba(25,15,5,0.15)', beam: 'rgba(200,100,30,0.05)', tint: 'rgba(30,20,10,0.10)' };
-    }
-    switch (environmentTone) {
-      case 'critical':
-        return { ground: 'rgba(30,5,5,0.18)', beam: 'rgba(220,40,40,0.06)', tint: 'rgba(35,10,10,0.12)' };
-      case 'tense':
-        return { ground: 'rgba(25,15,5,0.12)', beam: 'rgba(200,100,30,0.04)', tint: 'rgba(30,20,10,0.08)' };
-      case 'calm':
-        return { ground: 'rgba(5,20,15,0.08)', beam: 'rgba(50,180,120,0.03)', tint: 'rgba(15,30,20,0.05)' };
-      default:
-        return { ground: 'rgba(10,12,18,0.08)', beam: 'rgba(60,80,120,0.03)', tint: 'rgba(10,12,18,0.05)' };
-    }
-  };
-  const sceneTone = getSceneTone();
-
-  /* ─── Tone-consistent bracket / dot colors ─── */
-  const bracketColor = (() => {
-    if (rhythmState === 'momentum') return 'border-emerald-700/40';
-    if (rhythmState === 'overload' || rhythmState === 'fatigue') return 'border-amber-700/40';
-    switch (environmentTone) {
-      case 'critical': return 'border-red-700/40';
-      case 'tense': return 'border-amber-700/40';
-      case 'calm': return 'border-emerald-700/40';
-      default: return 'border-zinc-700/30';
-    }
-  })();
-
-  const dotColor = environmentTone === 'critical' ? 'bg-red-500/80' :
-    environmentTone === 'tense' ? 'bg-amber-500/80' :
-    environmentTone === 'calm' ? 'bg-emerald-500/80' :
-    'bg-zinc-500/80';
-
-  const pressure = (() => {
-    switch (operationalPressure) {
-      case 'critical': return { text: 'CRITICAL', color: 'text-red-500' };
-      case 'high':     return { text: 'ELEVATED',  color: 'text-amber-500' };
-      case 'medium':   return { text: 'MODERATE',  color: 'text-zinc-400' };
-      default:         return { text: 'NOMINAL',   color: 'text-emerald-600' };
-    }
-  })();
-
   /* ─── Camera refs ─── */
   const sceneRootRef = useRef<HTMLDivElement>(null);
   const starRef = useRef<HTMLDivElement>(null);
@@ -310,6 +251,65 @@ function WorkspaceContent() {
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [state.bootComplete]);
+
+  if (showBoot && !state.bootComplete) {
+    return (
+      <BootSequence
+        onComplete={() => {
+          setShowBoot(false);
+          completeBoot();
+        }}
+        isReturnVisit={bootIsReturn}
+      />
+    );
+  }
+
+  /* ─── Scene tone ─── */
+  const getSceneTone = () => {
+    if (rhythmState === 'momentum') {
+      return { ground: 'rgba(5,20,15,0.12)', beam: 'rgba(50,180,120,0.04)', tint: 'rgba(15,30,20,0.08)' };
+    }
+    if (rhythmState === 'overload' || rhythmState === 'fatigue') {
+      return { ground: 'rgba(25,15,5,0.15)', beam: 'rgba(200,100,30,0.05)', tint: 'rgba(30,20,10,0.10)' };
+    }
+    switch (environmentTone) {
+      case 'critical':
+        return { ground: 'rgba(30,5,5,0.18)', beam: 'rgba(220,40,40,0.06)', tint: 'rgba(35,10,10,0.12)' };
+      case 'tense':
+        return { ground: 'rgba(25,15,5,0.12)', beam: 'rgba(200,100,30,0.04)', tint: 'rgba(30,20,10,0.08)' };
+      case 'calm':
+        return { ground: 'rgba(5,20,15,0.08)', beam: 'rgba(50,180,120,0.03)', tint: 'rgba(15,30,20,0.05)' };
+      default:
+        return { ground: 'rgba(10,12,18,0.08)', beam: 'rgba(60,80,120,0.03)', tint: 'rgba(10,12,18,0.05)' };
+    }
+  };
+  const sceneTone = getSceneTone();
+
+  /* ─── Tone-consistent bracket / dot colors ─── */
+  const bracketColor = (() => {
+    if (rhythmState === 'momentum') return 'border-emerald-700/40';
+    if (rhythmState === 'overload' || rhythmState === 'fatigue') return 'border-amber-700/40';
+    switch (environmentTone) {
+      case 'critical': return 'border-red-700/40';
+      case 'tense': return 'border-amber-700/40';
+      case 'calm': return 'border-emerald-700/40';
+      default: return 'border-zinc-700/30';
+    }
+  })();
+
+  const dotColor = environmentTone === 'critical' ? 'bg-red-500/80' :
+    environmentTone === 'tense' ? 'bg-amber-500/80' :
+    environmentTone === 'calm' ? 'bg-emerald-500/80' :
+    'bg-zinc-500/80';
+
+  const pressure = (() => {
+    switch (operationalPressure) {
+      case 'critical': return { text: 'CRITICAL', color: 'text-red-500' };
+      case 'high':     return { text: 'ELEVATED',  color: 'text-amber-500' };
+      case 'medium':   return { text: 'MODERATE',  color: 'text-zinc-400' };
+      default:         return { text: 'NOMINAL',   color: 'text-emerald-600' };
+    }
+  })();
 
   return (
     <div className="workspace-environment relative w-full h-screen overflow-hidden bg-[#020208] select-none">
