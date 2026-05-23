@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useServiceWorker } from '@/hooks';
 import { MobileNav, OfflineIndicator } from '@/components/shared';
 import { OperationalAcknowledgmentProvider } from './operational-acknowledgment';
+import { CommandPalette } from '@/components/command-palette';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   useServiceWorker();
@@ -59,6 +60,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <MobileNav />
+      <CommandPalette />
     </>
   );
 }
