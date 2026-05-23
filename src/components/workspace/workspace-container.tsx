@@ -110,7 +110,15 @@ function WorkspaceContent() {
   if (showBoot && !state.bootComplete) {
     const hasVisitedBefore = typeof window !== 'undefined' &&
       localStorage.getItem('era-os-workspace-state') !== null;
-    return <BootSequence onComplete={() => setShowBoot(false)} isReturnVisit={hasVisitedBefore} />;
+    return (
+      <BootSequence
+        onComplete={() => {
+          setShowBoot(false);
+          completeBoot();
+        }}
+        isReturnVisit={hasVisitedBefore}
+      />
+    );
   }
 
   /* ─── Scene tone ─── */
@@ -185,11 +193,11 @@ function WorkspaceContent() {
   const rotX = useRef(0);
   const rotY = useRef(0);
   const rafId = useRef(0);
-  const mountedRef = useRef(false);
   const reducedMotionRef = useRef(false);
 
   useEffect(() => {
-    mountedRef.current = true;
+    if (!state.bootComplete) return;
+
     reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lowEndDevice = typeof navigator !== 'undefined' && navigator.hardwareConcurrency <= 4;
     const skipEffects = reducedMotionRef.current || lowEndDevice;
@@ -198,6 +206,7 @@ function WorkspaceContent() {
     const layerRefs = [starRef, farRef, midRef, nearRef, hazeRef];
 
     let paused = false;
+    let running = true;
 
     const onMouseMove = (e: MouseEvent) => {
       mouseNX.current = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -229,20 +238,17 @@ function WorkspaceContent() {
       cameraVel.current = dragDelta.current * 1.5;
     };
 
-    const onContextMenu = (e: Event) => { e.preventDefault(); };
     const onVisibilityChange = () => { paused = document.hidden; };
 
     document.addEventListener('mousemove', onMouseMove, { passive: true });
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mouseup', onMouseUp);
-    document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     const animate = () => {
-      if (!mountedRef.current) { rafId.current = requestAnimationFrame(animate); return; }
+      if (!running) return;
 
       if (!paused) {
-        /* ── Camera coast (inertia) ── */
         if (!isPanning.current) {
           cameraVel.current *= 0.90;
           cameraX.current += cameraVel.current;
@@ -250,7 +256,6 @@ function WorkspaceContent() {
           if (Math.abs(cameraVel.current) < 0.15) cameraVel.current = 0;
         }
 
-        /* ── Perspective lens rotation (always active) ── */
         if (!skipEffects) {
           const pullX = (mouseNX.current - rotX.current) * 0.04;
           const pullY = (mouseNY.current - rotY.current) * 0.04;
@@ -264,7 +269,6 @@ function WorkspaceContent() {
           const rx = Math.max(-0.6, Math.min(0.6, isFinite(rotX.current) ? rotX.current : 0));
           const ry = Math.max(-0.4, Math.min(0.4, isFinite(rotY.current) ? rotY.current : 0));
 
-          /* ── Scene root — camera pan + lens rotation ── */
           if (sceneRootRef.current) {
             sceneRootRef.current.style.transform = `
               translateX(${-cameraX.current}px)
@@ -273,7 +277,6 @@ function WorkspaceContent() {
             `;
           }
 
-          /* ── Parallax layers — move at fraction of camera ── */
           const cx = cameraX.current;
           for (let i = 0; i < layerRefs.length; i++) {
             const ref = layerRefs[i];
@@ -293,15 +296,14 @@ function WorkspaceContent() {
     rafId.current = requestAnimationFrame(animate);
 
     return () => {
-      mountedRef.current = false;
+      running = false;
+      cancelAnimationFrame(rafId.current);
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('mouseup', onMouseUp);
-      document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('visibilitychange', onVisibilityChange);
-      cancelAnimationFrame(rafId.current);
     };
-  }, []);
+  }, [state.bootComplete]);
 
   return (
     <div className="workspace-environment relative w-full h-screen overflow-hidden bg-[#020208] select-none">

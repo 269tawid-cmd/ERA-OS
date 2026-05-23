@@ -86,10 +86,7 @@ export function FloatingPanel({
 
   const [isHovered, setIsHovered] = useState(false);
 
-  /* Display glyph uses a subsystem identity if available */
   const displayGlyph = isActive ? '◐' : '○';
-
-  if (false) return null; /* panel open/close handled by parent visibility */
 
   const cfg = DEPTH_CONFIG[depth];
 
