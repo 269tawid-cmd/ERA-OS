@@ -25,6 +25,20 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+
+  /* Notify all clients that service worker is active — system persistence */
+  event.waitUntil(
+    self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({
+          type: 'SW_ACTIVATED',
+          message: 'System continuity module active',
+          timestamp: Date.now(),
+        });
+      });
+    })
+  );
+
   self.clients.claim();
 });
 
@@ -38,17 +52,49 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
-          if (networkResponse.ok && networkResponse.headers.get('content-type')?.includes('text/css')) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+          if (networkResponse.ok) {
+            const contentType = networkResponse.headers.get('content-type') || '';
+            if (contentType.includes('text/css') || contentType.includes('text/html')) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
+        .catch(() => {
+          /* When offline, cached response is returned — operations continue */
+          if (cachedResponse) {
+            self.clients.matchAll().then((clients) => {
+              clients.forEach((client) => {
+                client.postMessage({
+                  type: 'OFFLINE_MODE',
+                  message: 'Operations continuing in local mode',
+                  timestamp: Date.now(),
+                });
+              });
+            });
+          }
+          return cachedResponse;
+        });
 
       return cachedResponse || fetchPromise;
     })
   );
+});
+
+/* Listen for client connectivity changes */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'ONLINE_RESTORED') {
+    self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({
+          type: 'LINK_RESTORED',
+          message: 'Link restored — synchronizing',
+          timestamp: Date.now(),
+        });
+      });
+    });
+  }
 });

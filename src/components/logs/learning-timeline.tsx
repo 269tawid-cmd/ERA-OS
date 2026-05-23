@@ -30,7 +30,7 @@ export function LearningTimeline({ logs: initialLogs }: LearningTimelineProps) {
   if (logs.length === 0) {
     return (
       <div className="font-mono text-xs text-zinc-600 text-center py-6">
-        No entries yet. Start documenting your learning.
+        No session records yet.
       </div>
     );
   }

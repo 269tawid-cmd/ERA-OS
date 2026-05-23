@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Button, Select, Input } from '@/components/ui';
 import { createCTF } from '@/lib/actions/ctf';
 import { CTF_PLATFORMS, CTF_CATEGORIES, CTF_DIFFICULTIES } from '@/lib/constants';
+import { useAcknowledgment } from '@/components/shared/operational-acknowledgment';
+import { ACTION_ACKNOWLEDGMENTS } from '@/lib/constants/operational-rituals';
 import type { CTFPlatform, CTFCategory, CTFDifficulty } from '@/types';
 
 export function CTFForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [name, setName] = useState('');
   const [platform, setPlatform] = useState<CTFPlatform>('PicoCTF');
   const [category, setCategory] = useState<CTFCategory>('Web');
@@ -19,6 +20,7 @@ export function CTFForm() {
   const [solved, setSolved] = useState(false);
   const [flagNotes, setFlagNotes] = useState('');
   const [xpEarned, setXpEarned] = useState('25');
+  const { acknowledge } = useAcknowledgment();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +42,10 @@ export function CTFForm() {
       setFlagNotes('');
       setSolved(false);
       setXpEarned('25');
-      setSuccess(true);
-      router.refresh();
 
-      setTimeout(() => setSuccess(false), 3000);
+      const def = ACTION_ACKNOWLEDGMENTS.ctfLogged;
+      if (def.message) acknowledge(def.message, def.weight);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log CTF');
     } finally {
@@ -56,12 +58,6 @@ export function CTFForm() {
       {error && (
         <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-lg">
           <p className="font-mono text-sm text-red-400">{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-lg">
-          <p className="font-mono text-sm text-emerald-400">CTF logged successfully</p>
         </div>
       )}
 

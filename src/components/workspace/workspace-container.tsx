@@ -6,9 +6,9 @@ import { MissionConsole } from './mission-console';
 import { MentorSubsystem } from './mentor-subsystem';
 import { RoadmapStatus } from './roadmap-status';
 import { SystemTelemetry } from './system-telemetry';
+import { OpsEvidence } from './ops-evidence';
 import { WorkspaceProvider, useWorkspaceState } from './workspace-state';
 import { BootSequence } from './workspace-boot';
-import { OperationalEvent } from './workspace-ecosystem';
 
 interface WorkspaceData {
   tasks?: any[];
@@ -21,6 +21,8 @@ interface WorkspaceData {
     daysRemaining: number;
     daysElapsed: number;
   };
+  logs?: any[];
+  ctfEntries?: any[];
   logsCount?: number;
   ctfCount?: number;
   tasksTotal?: number;
@@ -36,104 +38,10 @@ const defaultPositions: Record<string, { x: number; y: number }> = {
   'mentor-subsystem': { x: 40, y: 380 },
   'roadmap-status': { x: 400, y: 100 },
   'system-telemetry': { x: 400, y: 380 },
+  'ops-evidence': { x: 40, y: 660 },
 };
 
-function EventBanner({ event, onDismiss }: { event: OperationalEvent; onDismiss: () => void }) {
-  useEffect(() => {
-    const timer = setTimeout(onDismiss, event.duration);
-    return () => clearTimeout(timer);
-  }, [event.duration, onDismiss]);
 
-  const getEventStyle = () => {
-    switch (event.type) {
-      case 'critical':
-        return 'bg-red-950/80 border-red-600/50 text-red-300';
-      case 'warning':
-        return 'bg-amber-950/60 border-amber-600/40 text-amber-300';
-      case 'success':
-        return 'bg-emerald-950/60 border-emerald-600/40 text-emerald-300';
-      default:
-        return 'bg-zinc-900/80 border-zinc-600/40 text-zinc-300';
-    }
-  };
-
-  return (
-    <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-50 px-6 py-2 border rounded font-mono text-xs uppercase tracking-wider animate-fade-in-down ${getEventStyle()}`}>
-      {event.message}
-    </div>
-  );
-}
-
-function OperationalEventsDisplay() {
-  const { events } = useWorkspaceState();
-  const [visibleEvents, setVisibleEvents] = useState<OperationalEvent[]>([]);
-
-  useEffect(() => {
-    if (events.length > 0) {
-      setVisibleEvents([events[0]]);
-    }
-  }, [events]);
-
-  const dismissEvent = () => {
-    setVisibleEvents([]);
-  };
-
-  if (visibleEvents.length === 0) return null;
-
-  return (
-    <>
-      {visibleEvents.map(event => (
-        <EventBanner key={event.id} event={event} onDismiss={dismissEvent} />
-      ))}
-    </>
-  );
-}
-
-function ActiveFocusIndicator() {
-  const { activeFocus, context } = useWorkspaceState();
-  
-  if (activeFocus.primary === 'none') return null;
-
-  const focusLabel = {
-    mission: 'MISSION FOCUS',
-    mentor: 'MENTOR FOCUS',
-    roadmap: 'ROADMAP FOCUS',
-    telemetry: 'TELEMETRY FOCUS',
-  };
-
-  return (
-    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 pointer-events-none">
-      <div className={`font-mono text-[10px] uppercase tracking-widest px-4 py-1.5 border rounded ${
-        context.environmentTone === 'critical'
-          ? 'border-red-600/40 text-red-400/60 bg-red-950/30'
-          : context.environmentTone === 'tense'
-            ? 'border-amber-600/40 text-amber-400/60 bg-amber-950/20'
-            : 'border-zinc-600/40 text-zinc-400/60 bg-zinc-900/30'
-      }`}>
-        {focusLabel[activeFocus.primary]} • {activeFocus.reason}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Tone-safe color lookups (never produce invalid CSS) ─── */
-const AMBIENT_COLORS: Record<string, string> = {
-  critical: 'rgba(59,130,246,0.04)',
-  tense: 'rgba(59,130,246,0.05)',
-  calm: 'rgba(52,211,153,0.06)',
-  normal: 'rgba(59,130,246,0.05)',
-};
-
-const BOUNCE_COLORS: Record<string, string> = {
-  critical: 'rgba(239,68,68,0.08)',
-  tense: 'rgba(245,158,11,0.06)',
-  calm: 'rgba(52,211,153,0.03)',
-  normal: 'rgba(239,68,68,0.02)',
-};
-
-function toneColor(map: Record<string, string>, tone: string): string {
-  return map[tone] ?? map.normal ?? 'rgba(59,130,246,0.05)';
-}
 
 /* ─── Isolate cinematic render failures ─── */
 class CinematicErrorBoundary extends Component<
@@ -184,56 +92,142 @@ function WorkspaceContent() {
     }));
   }, []);
 
-  /* ─── Cinematic Parallax Camera (declared unconditionally) ─── */
-  const depthRef = useRef<HTMLDivElement>(null);
+  /* ─── Cinematic Parallax Camera — Inertia, Overshoot, Breathing ─── */
+  const distantRef = useRef<HTMLDivElement>(null);
+  const ambientRef = useRef<HTMLDivElement>(null);
+  const lightBeamRef = useRef<HTMLDivElement>(null);
+  const atmosphereRef = useRef<HTMLDivElement>(null);
   const cameraPos = useRef({ x: 0, y: 0 });
   const targetPos = useRef({ x: 0, y: 0 });
+  const velocity = useRef({ x: 0, y: 0 });
   const rafId = useRef<number>(0);
   const mountedRef = useRef(false);
   const reducedMotionRef = useRef(false);
 
+  /* ─── Environmental life modulation refs ─── */
+  const toneRef = useRef(environmentTone);
+  const envPhase = useRef(0);
+
+  useEffect(() => { toneRef.current = environmentTone; }, [environmentTone]);
+
   useEffect(() => {
-    console.debug('[cinematic] init');
     mountedRef.current = true;
     reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const lowEndDevice = typeof navigator !== 'undefined' && navigator.hardwareConcurrency <= 4;
+    const skipCamera = reducedMotionRef.current || lowEndDevice;
+
+    const layers = [
+      { ref: distantRef, speed: 0.12 },
+      { ref: atmosphereRef, speed: 0.25 },
+      { ref: ambientRef, speed: 0.5 },
+      { ref: lightBeamRef, speed: 1.0 },
+    ];
+
+    let idlePhase = 0;
+    let prevTarget = { x: 0, y: 0 };
+    let paused = false;
 
     const onMouseMove = (e: MouseEvent) => {
+      if (paused) return;
       const w = window.innerWidth;
       const h = window.innerHeight;
       targetPos.current = {
         x: w > 0 ? (e.clientX / w - 0.5) * 2 : 0,
         y: h > 0 ? (e.clientY / h - 0.5) * 2 : 0,
       };
+      idlePhase = 0;
     };
 
+    const onVisibilityChange = () => {
+      paused = document.hidden;
+      if (document.hidden) {
+        envPhase.current = 0;
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     const animate = () => {
-      if (!mountedRef.current || reducedMotionRef.current) return;
-      if (!depthRef.current) {
+      if (!mountedRef.current) {
         rafId.current = requestAnimationFrame(animate);
         return;
       }
-      cameraPos.current.x += (targetPos.current.x - cameraPos.current.x) * 0.06;
-      cameraPos.current.y += (targetPos.current.y - cameraPos.current.y) * 0.06;
-      const px = isFinite(cameraPos.current.x) ? cameraPos.current.x : 0;
-      const py = isFinite(cameraPos.current.y) ? cameraPos.current.y : 0;
-      depthRef.current.style.transform = `translate(${px * 3}px, ${py * 2}px)`;
+
+      if (!paused) {
+        /* ── Cinematic atmosphere breathing ── */
+        const tone = toneRef.current;
+        const pace = tone === 'critical' ? 1.8 : tone === 'tense' ? 1.3 : tone === 'calm' ? 0.7 : 1.0;
+        envPhase.current += 0.0005 * pace;
+        const hp = envPhase.current;
+        const sp = envPhase.current;
+
+        if (atmosphereRef.current) {
+          const haze = 0.65 + Math.sin(hp * 0.3) * 0.08;
+          atmosphereRef.current.style.opacity = String(Math.max(0.35, Math.min(1, haze)));
+        }
+        if (lightBeamRef.current) {
+          const shimmer = 0.7 + Math.sin(sp * 0.4) * 0.08;
+          lightBeamRef.current.style.opacity = String(Math.max(0.35, Math.min(1, shimmer)));
+        }
+
+        /* ── Camera movement ── */
+        if (!skipCamera) {
+          prevTarget = { ...targetPos.current };
+
+          const pullX = (targetPos.current.x - cameraPos.current.x) * 0.06;
+          const pullY = (targetPos.current.y - cameraPos.current.y) * 0.06;
+          velocity.current.x += (pullX - velocity.current.x) * 0.07;
+          velocity.current.y += (pullY - velocity.current.y) * 0.07;
+          velocity.current.x *= 0.92;
+          velocity.current.y *= 0.92;
+          cameraPos.current.x += velocity.current.x;
+          cameraPos.current.y += velocity.current.y;
+
+          const mx = Math.max(-1, Math.min(1, isFinite(cameraPos.current.x) ? cameraPos.current.x : 0));
+          const my = Math.max(-1, Math.min(1, isFinite(cameraPos.current.y) ? cameraPos.current.y : 0));
+
+          idlePhase += 0.002;
+          const breathX = Math.sin(idlePhase * 0.5) * 0.08;
+          const breathY = Math.cos(idlePhase * 0.35) * 0.06;
+          const totalX = mx + breathX;
+          const totalY = my + breathY;
+
+          for (let i = 0; i < layers.length; i++) {
+            const layer = layers[i];
+            if (!layer.ref.current) continue;
+            layer.ref.current.style.transform =
+              `translate3d(${totalX * layer.speed}px, ${totalY * layer.speed}px, 0)`;
+          }
+        }
+      }
+
       rafId.current = requestAnimationFrame(animate);
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     rafId.current = requestAnimationFrame(animate);
-    console.debug('[cinematic] RAF start');
 
     return () => {
-      console.debug('[cinematic] cleanup');
       mountedRef.current = false;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('mousemove', onMouseMove);
       cancelAnimationFrame(rafId.current);
     };
   }, []);
 
+  const [sessionCount, setSessionCount] = useState(0);
+
+  useEffect(() => {
+    if (!state.bootComplete) return;
+    const stored = parseInt(localStorage.getItem('era-os-session-count') || '0', 10);
+    const newCount = stored + 1;
+    localStorage.setItem('era-os-session-count', String(newCount));
+    setSessionCount(newCount);
+  }, [state.bootComplete]);
+
   if (showBoot && !state.bootComplete) {
-    return <BootSequence onComplete={() => setShowBoot(false)} />;
+    const hasVisitedBefore = typeof window !== 'undefined' &&
+      localStorage.getItem('era-os-workspace-state') !== null;
+    return <BootSequence onComplete={() => setShowBoot(false)} isReturnVisit={hasVisitedBefore} />;
   }
 
   const getEnvironmentClass = () => {
@@ -319,118 +313,112 @@ function WorkspaceContent() {
     <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
       {/* Cinematic Depth & Lighting System (error-isolated) */}
       <CinematicErrorBoundary>
-      <div ref={depthRef} className="absolute inset-0 pointer-events-none overflow-hidden will-change-transform">
-        {/* 1. Vignette - dark edges for depth framing */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.45) 100%)' }} />
-        
-        {/* 2. Bottom fog - ground plane darkness */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.3) 100%)' }} />
-        
-        {/* 3. Top atmosphere - ceiling shadow */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, transparent 35%)' }} />
-        
-        {/* 4. Side shadow zones */}
-        <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.12) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.12) 100%)' }} />
-        
-        {/* 5. Cinematic Cool Ambient - soft overhead light */}
-        <div className={`absolute inset-0 transition-opacity duration-[1500ms] animate-ambient-drift`} style={{ backgroundImage: `radial-gradient(ellipse at 50% 0%, ${toneColor(AMBIENT_COLORS, environmentTone)} 0%, transparent 70%)` }} />
-        
-        {/* 6. Tactical Low Bounce - reflected light from lower edge */}
-        <div className="absolute inset-0 transition-opacity duration-1000" style={{ backgroundImage: `radial-gradient(ellipse at 50% 100%, ${toneColor(BOUNCE_COLORS, environmentTone)} 0%, transparent 60%)` }} />
-        
-        {/* 7. Soft center focus guide */}
-        {environmentTone !== 'critical' && (
-          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.015) 0%, transparent 60%)' }} />
-        )}
+      {/* Layer 0 — Distant atmosphere, city silhouette */}
+      <div
+        ref={distantRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{
+          willChange: 'transform',
+          filter: 'blur(6px)',
+          backgroundImage: `
+            linear-gradient(to bottom, rgba(2,2,8,0.7) 0%, rgba(4,4,14,0.35) 40%, transparent 60%),
+            radial-gradient(ellipse 60% 8% at 50% 72%, rgba(20,45,90,0.1) 0%, transparent 100%),
+            repeating-linear-gradient(90deg,
+              transparent 0px, transparent 3px,
+              rgba(10,15,30,0.06) 3px, rgba(10,15,30,0.06) 5px,
+              transparent 5px, transparent 9px,
+              rgba(7,11,24,0.04) 9px, rgba(7,11,24,0.04) 13px,
+              transparent 13px, transparent 17px,
+              rgba(9,14,28,0.05) 17px, rgba(9,14,28,0.05) 19px,
+              transparent 19px, transparent 22px,
+              rgba(6,10,20,0.04) 22px, rgba(6,10,20,0.04) 24px,
+              transparent 24px, transparent 29px,
+              rgba(11,17,34,0.05) 29px, rgba(11,17,34,0.05) 31px,
+              transparent 31px, transparent 35px
+            ),
+            repeating-linear-gradient(90deg,
+              transparent 0px, transparent 14px,
+              rgba(180,200,255,0.025) 14px, rgba(180,200,255,0.025) 15px,
+              transparent 15px, transparent 28px,
+              rgba(180,200,255,0.015) 28px, rgba(180,200,255,0.015) 29px,
+              transparent 29px, transparent 42px,
+              rgba(180,200,255,0.03) 42px, rgba(180,200,255,0.03) 43px,
+              transparent 43px, transparent 56px,
+              rgba(180,200,255,0.02) 56px, rgba(180,200,255,0.02) 57px,
+              transparent 57px, transparent 70px
+            ),
+            linear-gradient(to bottom, transparent 55%, rgba(4,4,14,0.35) 80%, rgba(4,4,14,0.55) 100%)
+          `,
+        }}
+      />
 
-        {/* 8. Critical alert pulse bars */}
-        {environmentTone === 'critical' && (
-          <>
-            <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500/15 animate-pulse" />
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-500/8 animate-pulse" />
-          </>
-        )}
+      {/* Layer 1 — Atmosphere / horizon haze */}
+      <div
+        ref={atmosphereRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{
+          willChange: 'transform',
+          background: `
+            radial-gradient(ellipse 90% 12% at 50% 72%, rgba(15,25,50,0.06) 0%, transparent 100%),
+            radial-gradient(ellipse 60% 8% at 50% 78%, rgba(10,18,40,0.08) 0%, transparent 100%),
+            linear-gradient(to bottom, transparent 50%, rgba(8,12,25,0.04) 75%, rgba(8,12,25,0.08) 100%)
+          `,
+        }}
+      />
 
-        {/* Continuity Identity Ambient Layer */}
-        {continuity.identity.totalOperationalDays > 5 && (
-          <div className="absolute inset-0 transition-opacity duration-1000" style={{
-            opacity: continuity.identity.dominantRhythm === 'momentum' ? 0.03 :
-                     continuity.identity.dominantRhythm === 'recovery' ? 0.02 :
-                     continuity.identity.progressionTendency === 'declining' ? 0.02 : 0,
-          }}>
-            <div className={`absolute inset-0 bg-gradient-to-t ${
-              continuity.identity.dominantRhythm === 'momentum' ? 'from-emerald-500/20' :
-              continuity.identity.dominantRhythm === 'recovery' ? 'from-amber-500/15' :
-              continuity.identity.progressionTendency === 'declining' ? 'from-red-500/15' :
-              'to-transparent'
-            } to-transparent`} />
-          </div>
-        )}
-        
-        {/* Forecast Trajectory Ambient Layer */}
-        {forecast.temporal.confidence > 30 && (
-          <div className="absolute bottom-20 left-0 right-0 h-12 transition-opacity duration-1000" style={{ opacity: 0.03 }}>
-            <div className={`absolute inset-0 bg-gradient-to-t ${
-              forecast.trajectory.classification === 'Operational Saturation' ? 'from-red-500/30' :
-              forecast.trajectory.classification === 'Drift Accumulation' ? 'from-amber-500/20' :
-              forecast.trajectory.classification === 'Recovery Momentum' ? 'from-amber-500/15' :
-              forecast.trajectory.classification === 'Sustainable Expansion' ? 'from-emerald-500/25' :
-              forecast.trajectory.classification === 'Strategic Consolidation' ? 'from-blue-500/15' :
-              'to-transparent'
-            } to-transparent`} />
-          </div>
-        )}
+      {/* Layer 2 — Ambient environment (vignette, shadows) */}
+      <div
+        ref={ambientRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{
+          willChange: 'transform',
+          background: `
+            radial-gradient(ellipse 120% 100% at 50% 50%, transparent 45%, rgba(0,0,0,0.35) 100%),
+            linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 12%, transparent 85%, rgba(0,0,0,0.1) 100%),
+            linear-gradient(to right, rgba(0,0,0,0.08) 0%, transparent 6%, transparent 94%, rgba(0,0,0,0.08) 100%)
+          `,
+        }}
+      />
 
-        {/* Pressure Propagation Edge Glow */}
-        {simulation.pressurePropagation.confidence > 30 && simulation.pressurePropagation.currentStage >= 1 && (
-          <div className={`absolute left-0 top-0 bottom-0 w-0.5 transition-all duration-1000 ${
-            simulation.pressurePropagation.source === 'overload' ? 'bg-gradient-to-b from-red-500/15 via-red-500/5 to-transparent' :
-            simulation.pressurePropagation.source === 'backlog' ? 'bg-gradient-to-b from-amber-500/15 via-amber-500/5 to-transparent' :
-            simulation.pressurePropagation.source === 'momentum' ? 'bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent' :
-            'bg-gradient-to-b from-zinc-500/10 via-zinc-500/3 to-transparent'
-          } ${simulation.pressurePropagation.currentStage >= 2 ? 'animate-pulse-slow' : ''}`} />
-        )}
-
-        {/* 9. Atmospheric dust / light pools — slow ambient drift */}
-        <div className="absolute inset-0 pointer-events-none animate-dust-drift opacity-[0.012]"
-          style={{
-            backgroundImage: `
-              radial-gradient(ellipse at 15% 25%, rgba(255,255,255,0.12) 0%, transparent 50%),
-              radial-gradient(ellipse at 75% 40%, rgba(255,255,255,0.06) 0%, transparent 50%),
-              radial-gradient(ellipse at 40% 80%, rgba(255,255,255,0.04) 0%, transparent 50%),
-              radial-gradient(ellipse at 88% 65%, rgba(255,255,255,0.05) 0%, transparent 50%)
-            `,
-            backgroundSize: '200% 200%',
-          }}
-        />
-      </div>
+      {/* Layer 3 — Volumetric lighting */}
+      <div
+        ref={lightBeamRef}
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{
+          willChange: 'transform',
+          background: `
+            conic-gradient(from 145deg at 30% 60%, rgba(40,80,180,0.015) 0%, transparent 40%, rgba(60,100,200,0.008) 70%, transparent 100%),
+            radial-gradient(ellipse 60% 4% at 25% 65%, rgba(60,120,230,0.02) 0%, transparent 100%),
+            radial-gradient(ellipse 50% 3% at 75% 55%, rgba(50,100,210,0.015) 0%, transparent 100%),
+            radial-gradient(ellipse 70% 6% at 50% 50%, rgba(25,50,120,0.01) 0%, transparent 100%)
+          `,
+        }}
+      />
       </CinematicErrorBoundary>
 
-      {/* Grid Overlay */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.02]">
-        <div 
-          className="w-full h-full"
-          style={{
-            backgroundImage: `
-              linear-gradient(#71717a 1px, transparent 1px),
-              linear-gradient(90deg, #71717a 1px, transparent 1px)
-            `,
-            backgroundSize: '60px 60px',
-          }}
-        />
-      </div>
+      {/* Atmospheric Depth Composite */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(ellipse 100% 15% at 50% 75%, rgba(10,18,40,0.05) 0%, transparent 100%),
+          linear-gradient(to bottom, rgba(5,5,15,0.03) 0%, transparent 8%, transparent 75%, rgba(5,5,15,0.06) 100%)
+        `,
+      }} />
+
+      {/* Dynamic Darkness — contrast shaping */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(ellipse 70% 50% at 50% 50%, transparent 35%, rgba(0,0,0,0.1) 100%),
+          linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.05) 100%),
+          radial-gradient(ellipse 120% 25% at 50% 0%, rgba(0,0,0,0.08) 0%, transparent 100%)
+        `,
+      }} />
 
       {/* Synchronized Corner Brackets */}
       <div className="absolute inset-3 pointer-events-none">
-        <div className={`absolute top-0 left-0 w-8 h-8 border-l border-t ${syncColors.bracket}`} />
-        <div className={`absolute top-0 right-0 w-8 h-8 border-r border-t ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 left-0 w-8 h-8 border-l border-b ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 right-0 w-8 h-8 border-r border-b ${syncColors.bracket}`} />
-      </div>
-
-      {/* Ambient Scanline */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.01]">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-100 to-transparent animate-scanline-slow" />
+        <div className={`absolute top-0 left-0 w-6 h-6 border-l border-t ${syncColors.bracket}`} />
+        <div className={`absolute top-0 right-0 w-6 h-6 border-r border-t ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 left-0 w-6 h-6 border-l border-b ${syncColors.bracket}`} />
+        <div className={`absolute bottom-0 right-0 w-6 h-6 border-r border-b ${syncColors.bracket}`} />
       </div>
 
       {/* Status Indicators - Synchronized */}
@@ -450,27 +438,6 @@ function WorkspaceContent() {
           </div>
         )}
       </div>
-
-      {/* Strategic Status Indicator */}
-      {context.strategic?.progressionHealth !== undefined && (
-        <div className="absolute bottom-6 left-6 pointer-events-none">
-          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              context.strategic.progressionHealth > 70 ? 'bg-emerald-500' :
-              context.strategic.progressionHealth > 40 ? 'bg-amber-500' :
-              'bg-red-500'
-            }`} />
-            <span className={`font-mono text-[9px] uppercase tracking-wider ${
-              context.strategic.progressionHealth > 70 ? 'text-emerald-500/40' :
-              context.strategic.progressionHealth > 40 ? 'text-amber-500/40' :
-              'text-red-500/40'
-            }`}>
-              {context.strategic.progressionHealth > 70 ? 'Strategic' :
-               context.strategic.progressionHealth > 40 ? 'Transitional' : 'At Risk'}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Operational Lifecycle Indicator */}
       {lifecycle && (
@@ -500,14 +467,11 @@ function WorkspaceContent() {
         </div>
       </div>
 
-      {/* Operational Events */}
-      <OperationalEventsDisplay />
-
-      {/* Workspace Panels with Active Focus */}
+      {/* Workspace Panels */}
       <FloatingPanel
         id="mission-console"
-        title="MISSION CONSOLE"
-        icon="▸"
+        title="◇ M-SYS-01 · Mission Console"
+        icon="◇"
         initialPosition={defaultPositions['mission-console']}
         isActive={isPanelActive('mission-console')}
       >
@@ -519,8 +483,8 @@ function WorkspaceContent() {
       
       <FloatingPanel
         id="mentor-subsystem"
-        title="MENTOR SUBSYSTEM"
-        icon="◆"
+        title="○ MN-SYS-02 · Mentor"
+        icon="○"
         initialPosition={defaultPositions['mentor-subsystem']}
         isActive={isPanelActive('mentor-subsystem')}
       >
@@ -533,7 +497,7 @@ function WorkspaceContent() {
       
       <FloatingPanel
         id="roadmap-status"
-        title="ROADMAP STATUS"
+        title="◈ RM-SYS-03 · Roadmap"
         icon="◈"
         initialPosition={defaultPositions['roadmap-status']}
         isActive={isPanelActive('roadmap-status')}
@@ -549,7 +513,7 @@ function WorkspaceContent() {
       
       <FloatingPanel
         id="system-telemetry"
-        title="SYSTEM TELEMETRY"
+        title="● TL-SYS-04 · Telemetry"
         icon="●"
         initialPosition={defaultPositions['system-telemetry']}
         isActive={isPanelActive('system-telemetry')}
@@ -563,31 +527,30 @@ function WorkspaceContent() {
         />
       </FloatingPanel>
 
-      {/* Active Focus Indicator */}
-      <ActiveFocusIndicator />
+      <FloatingPanel
+        id="ops-evidence"
+        title="◈ OP-SYS-05 · Ops Evidence"
+        icon="◈"
+        initialPosition={defaultPositions['ops-evidence']}
+        isActive={isPanelActive('ops-evidence')}
+      >
+        <OpsEvidence />
+      </FloatingPanel>
 
-      {/* Center Info - Subtle Background Branding */}
-      <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none ${
-        environmentTone === 'critical' ? 'opacity-10' : 'opacity-25'
-      }`}>
-        <div className="font-mono text-[9px] text-zinc-700 uppercase tracking-[0.3em] mb-1.5">
-          Era OS
-        </div>
-        <div className={`font-mono text-xl tracking-widest ${
-          environmentTone === 'critical' ? 'text-red-900' : 'text-zinc-800'
-        }`}>
-          COMMAND CENTER
-        </div>
-      </div>
 
-      {/* Bottom Status Bar */}
+
+      {/* Bottom Status Bar — operational persistence identity */}
       <div className={`absolute bottom-0 left-0 right-0 h-7 border-t flex items-center justify-between px-4 ${
         environmentTone === 'critical'
           ? 'bg-zinc-950/80 border-red-900/20'
           : 'bg-zinc-950/60 border-zinc-800/20'
       }`}>
         <div className="flex items-center gap-2 text-[9px] font-mono">
-          <span className="text-zinc-600">ERA-OS v0.1.0</span>
+          <span className="text-zinc-700">ERA-OS</span>
+          <span className="text-zinc-800">/</span>
+          <span className={`${continuity.identity.totalOperationalDays > 5 ? 'text-zinc-600' : 'text-zinc-700'}`}>
+            s{Math.min(sessionCount, 9999)}
+          </span>
           <span className="text-zinc-800">|</span>
           <span className={pressure.color}>
             {pressure.text}
@@ -615,63 +578,19 @@ function WorkspaceContent() {
             </>
           )}
         </div>
-        <div className="font-mono text-[9px] text-zinc-700">
-          Drag · Click to focus
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[9px] text-zinc-800">
+            SYS:{sessionCount > 0 ? sessionCount : '--'}
+          </span>
+          <span className="font-mono text-[9px] text-zinc-800">
+            Drag · Focus
+          </span>
         </div>
       </div>
 
       <style>{`
         .workspace-environment {
           transform: translateZ(0);
-        }
-        @keyframes scanline-slow {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100vh); }
-        }
-        .animate-scanline-slow {
-          animation: scanline-slow 12s linear infinite;
-          will-change: transform;
-        }
-        @keyframes ambient-drift {
-          0%, 100% { opacity: 0.55; }
-          33% { opacity: 0.7; }
-          66% { opacity: 0.6; }
-        }
-        .animate-ambient-drift {
-          animation: ambient-drift 14s ease-in-out infinite;
-          will-change: opacity;
-        }
-        @keyframes pulse-subtle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.5; }
-        }
-        .animate-pulse-slow {
-          animation: pulse-subtle 6s ease-in-out infinite;
-          will-change: opacity;
-        }
-        @keyframes fade-in-down {
-          from { 
-            opacity: 0;
-            transform: translateX(-50%) translateY(-10px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-        }
-        .animate-fade-in-down {
-          animation: fade-in-down 0.3s ease-out;
-        }
-        @keyframes dust-drift {
-          0% { background-position: 0% 0%; }
-          25% { background-position: 40% 30%; }
-          50% { background-position: 100% 60%; }
-          75% { background-position: 60% 20%; }
-          100% { background-position: 0% 0%; }
-        }
-        .animate-dust-drift {
-          animation: dust-drift 40s ease-in-out infinite;
-          will-change: background-position;
         }
       `}</style>
     </div>

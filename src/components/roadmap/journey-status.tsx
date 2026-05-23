@@ -48,7 +48,7 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
           />
         </div>
         <p className="font-mono text-sm text-zinc-500">
-          {roadmapProgress.percentage}% of Year 1 · {stats.currentMonth}/12 months
+          {roadmapProgress.percentage}% of Cycle 1 · {stats.currentMonth}/12 months
         </p>
       </div>
     );
@@ -69,7 +69,7 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
-            <p className="font-mono text-sm text-zinc-500 mb-2">Year Progress</p>
+            <p className="font-mono text-sm text-zinc-500 mb-2">Cycle Progress</p>
             <p className="font-mono text-3xl font-bold text-zinc-100">
               {roadmapProgress.percentage}%
             </p>
@@ -78,7 +78,7 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
             </p>
           </div>
           <div className="p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg">
-            <p className="font-mono text-sm text-zinc-500 mb-2">HACK XP</p>
+            <p className="font-mono text-sm text-zinc-500 mb-2">HACK Value</p>
             <p className="font-mono text-3xl font-bold text-red-400">{stats.hackXP}</p>
             <p className="font-mono text-sm text-zinc-500 mt-2">
               {stats.ctfSolvedCount} CTFs solved

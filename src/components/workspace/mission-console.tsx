@@ -26,7 +26,7 @@ export function MissionConsole({
   tasks?: Task[]; 
   currentMonth?: number 
 }) {
-  const { context, memory, continuity, forecast, simulation } = useWorkspaceState();
+  const { context, memory, continuity } = useWorkspaceState();
   const { 
     weakPillars, 
     operationalPressure, 
@@ -158,13 +158,13 @@ export function MissionConsole({
 
   const getStatusLine = () => {
     if (operationalPressure === 'critical') {
-      return { text: 'BACKLOG CRITICAL', color: 'text-red-500' };
+      return { text: 'OPERATION QUEUE SATURATED', color: 'text-red-500' };
     }
     if (operationalPressure === 'high') {
-      return { text: `${staleMissionCount} STALE`, color: 'text-amber-500/60' };
+      return { text: `${staleMissionCount} STALLED`, color: 'text-amber-500/60' };
     }
     if (daysBehindRoadmap > 7) {
-      return { text: `${daysBehindRoadmap}d behind`, color: 'text-amber-500/40' };
+      return { text: `${daysBehindRoadmap}d drift`, color: 'text-amber-500/40' };
     }
     return null;
   };
@@ -192,8 +192,18 @@ export function MissionConsole({
           {overdueCount > 0 && (
             <span className="text-red-500/60 animate-pulse">{overdueCount} OVERDUE</span>
           )}
+          {context.orchestration?.pacingProfile && context.orchestration.pacingProfile !== 'maintenance' && (
+            <span className={`font-mono ${
+              context.orchestration.pacingProfile === 'acceleration' ? 'text-emerald-500/50' :
+              context.orchestration.pacingProfile === 'stabilization' ? 'text-amber-500/50' :
+              context.orchestration.pacingProfile === 'consolidation' ? 'text-zinc-500' :
+              'text-blue-500/50'
+            }`}>
+              {context.orchestration.pacingProfile.toUpperCase()}
+            </span>
+          )}
           <span className={`${statusLine?.color || 'text-emerald-500/60'}`}>
-            ● LIVE
+            ● ACTIVE
           </span>
         </div>
       </div>
@@ -212,10 +222,10 @@ export function MissionConsole({
         {missions.length === 0 ? (
           <div className="text-center py-4 border border-dashed border-zinc-800/40 rounded">
             <p className="font-mono text-[10px] text-zinc-600 uppercase tracking-wider">
-              Queue Empty
+              Mission Queue Clear
             </p>
             <p className="font-mono text-[10px] text-zinc-700 mt-1">
-              Awaiting mission assignment
+              Awaiting tasking
             </p>
           </div>
         ) : (
@@ -256,19 +266,19 @@ export function MissionConsole({
       <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/30">
         <div className="text-center">
           <p className="font-mono text-lg text-emerald-400">{activeCount}</p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Active</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Engaged</p>
         </div>
         <div className="text-center">
           <p className={`font-mono text-lg ${staleCount > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>
             {staleCount}
           </p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Stale</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Stalled</p>
         </div>
         <div className="text-center">
           <p className={`font-mono text-lg ${overdueCount > 0 ? 'text-red-400' : 'text-zinc-400'}`}>
             {overdueCount}
           </p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Overdue</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Expired</p>
         </div>
       </div>
 
@@ -277,7 +287,7 @@ export function MissionConsole({
         <div className="pt-2 border-t border-zinc-800/20">
           <div className="flex items-center gap-2 text-[10px] font-mono">
             <span className="text-amber-500/40">!</span>
-            <span className="text-zinc-500">Neglected:</span>
+            <span className="text-zinc-500">Lagging:</span>
             <span className="text-red-500/60">{weakPillars.join(', ')}</span>
           </div>
         </div>
@@ -301,76 +311,110 @@ export function MissionConsole({
         </div>
       )}
 
-      {/* Continuity Scores */}
-      {continuity && (
-        <div className="pt-1.5 border-t border-zinc-800/20">
-          <div className="flex items-center gap-2 flex-wrap text-[8px] font-mono">
-            <span className="text-zinc-700">C</span>
-            <span className={continuity.scores.missionContinuityScore > 65 ? 'text-emerald-500/40' : continuity.scores.missionContinuityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
-              M:{continuity.scores.missionContinuityScore}
-            </span>
-            <span className={continuity.scores.strategicCoherenceScore > 65 ? 'text-emerald-500/40' : continuity.scores.strategicCoherenceScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
-              S:{continuity.scores.strategicCoherenceScore}
-            </span>
-            <span className={continuity.scores.operationalStabilityScore > 65 ? 'text-emerald-500/40' : continuity.scores.operationalStabilityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
-              O:{continuity.scores.operationalStabilityScore}
-            </span>
-            <span className={continuity.scores.executionContinuityScore > 65 ? 'text-emerald-500/40' : continuity.scores.executionContinuityScore > 40 ? 'text-amber-500/40' : 'text-red-500/40'}>
-              E:{continuity.scores.executionContinuityScore}
-            </span>
-            {continuity.carryForward.pacingRecommendation !== 'maintain' && (
-              <span className={`${continuity.carryForward.pacingRecommendation === 'slow' ? 'text-amber-500/30' : 'text-emerald-500/30'}`}>
-                • {continuity.carryForward.pacingRecommendation}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Drift Forecast */}
-      {forecast?.temporal && forecast.temporal.confidence > 25 && (
-        <div className="pt-1.5 border-t border-zinc-800/20">
-          <div className="flex items-center gap-2 flex-wrap">
-            {forecast.drift.driftRiskTrend !== 'stable' && (
-              <span className={`font-mono text-[8px] ${
-                forecast.drift.driftRiskTrend === 'increasing' ? 'text-amber-500/40' :
-                'text-emerald-500/40'
-              }`}>
-                drift {forecast.drift.driftRiskTrend}
-              </span>
-            )}
-            {forecast.drift.driftArrivalWeeks > 0 && forecast.drift.driftArrivalWeeks < 4 && (
-              <span className="font-mono text-[8px] text-amber-500/30">
-                drift risk ~{forecast.drift.driftArrivalWeeks}w
-              </span>
-            )}
-            {forecast.temporal.overloadProbability > 50 && (
-              <span className="font-mono text-[8px] text-red-500/30">
-                overload {forecast.temporal.overloadProbability}%
-              </span>
-            )}
-            <span className={`font-mono text-[7px] ${
-              forecast.temporal.confidence > 50 ? 'text-zinc-600' : 'text-zinc-700'
-            }`}>
-              fc:{forecast.temporal.confidence}%
+      {/* Mission Chains */}
+      {context.missionChains && context.missionChains.length > 0 && (
+        <div className="pt-2 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="font-mono text-[9px] text-zinc-600 uppercase tracking-wider">Chains</span>
+            <span className="text-zinc-700 text-[8px] font-mono">
+              {context.missionChains.filter(c => c.state === 'active').length} active
             </span>
           </div>
-        </div>
-      )}
-
-      {/* Scenario Projection */}
-      {simulation?.scenarios && simulation.scenarios.length > 0 && (
-        <div className="pt-1.5 border-t border-zinc-800/20">
-          <div className="flex items-center gap-2 flex-wrap">
-            {simulation.scenarios.slice(0, 2).map((s, i) => (
-              <span key={i} className={`font-mono text-[8px] ${
-                s.scenarioType === 'sustained_overload' || s.scenarioType === 'backlog_escalation' ? 'text-red-500/40' :
-                s.scenarioType === 'roadmap_compression' || s.scenarioType === 'recovery_pacing' ? 'text-amber-500/40' :
-                'text-emerald-500/40'
-              }`}>
-                {s.scenarioType} {Math.round(s.likelihood * 100)}%/{Math.round(s.confidence * 100)}%
-              </span>
+          <div className="space-y-1">
+            {context.missionChains.filter(c => c.state !== 'resolved').slice(0, 3).map(chain => (
+              <div key={chain.id} className="flex items-center gap-2 text-[10px] font-mono">
+                <span className={`text-zinc-600 w-3 text-center ${
+                  chain.state === 'active' ? 'text-emerald-500/60' :
+                  chain.state === 'abandoned' ? 'text-red-500/40' :
+                  'text-zinc-600'
+                }`}>
+                  {chain.state === 'active' ? '◐' : chain.state === 'abandoned' ? '⊙' : '○'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500 truncate">{chain.name}</span>
+                    <span className="text-zinc-600 ml-1">{chain.completedCount}/{chain.totalCount}</span>
+                  </div>
+                  <div className="w-full h-0.5 bg-zinc-800/30 rounded-full mt-0.5 overflow-hidden">
+                    <div
+                      className="h-full bg-zinc-600/50 rounded-full transition-all"
+                      style={{ width: `${chain.totalCount > 0 ? (chain.completedCount / chain.totalCount) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Campaigns */}
+      {(context.orchestration?.campaignStages || context.campaigns) && (
+        <div className="pt-2 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="font-mono text-[9px] text-zinc-600 uppercase tracking-wider">Campaigns</span>
+          </div>
+          <div className="space-y-1">
+            {(context.orchestration?.campaignStages || context.campaigns || []).filter(c => c.taskCount > 0).slice(0, 3).map(campaign => {
+              const stageGlyph = 'stage' in campaign
+                ? (campaign as any).stage === 'archived' ? '◼' :
+                  (campaign as any).stage === 'consolidation' ? '◐' :
+                  (campaign as any).stage === 'sustained' ? '◓' :
+                  (campaign as any).stage === 'escalation' ? '◑' :
+                  (campaign as any).stage === 'activation' ? '○' : '○'
+                : '○';
+              const stageColor = 'stage' in campaign
+                ? (campaign as any).stage === 'archived' ? 'text-emerald-500/40' :
+                  (campaign as any).stage === 'consolidation' ? 'text-zinc-500' :
+                  (campaign as any).stage === 'sustained' ? 'text-zinc-500' :
+                  (campaign as any).stage === 'escalation' ? 'text-amber-500/60' :
+                  'text-zinc-700'
+                : 'text-zinc-700';
+              const maturityScore = 'maturityScore' in campaign ? (campaign as any).maturityScore : null;
+              return (
+                <div key={campaign.id} className="text-[10px] font-mono">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className={`${stageColor}`}>{stageGlyph}</span>
+                      <span className="text-zinc-500 truncate">{campaign.name}</span>
+                    </div>
+                    <span className="text-zinc-600 flex-shrink-0">{campaign.completedCount}/{campaign.taskCount}</span>
+                  </div>
+                  <div className="w-full h-0.5 bg-zinc-800/30 rounded-full mt-0.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        campaign.completedCount === campaign.taskCount && campaign.taskCount > 0
+                          ? 'bg-emerald-500/40'
+                          : campaign.completedCount > 0
+                            ? 'bg-zinc-600/50'
+                            : 'bg-zinc-800/10'
+                      }`}
+                      style={{ width: `${campaign.taskCount > 0 ? (campaign.completedCount / campaign.taskCount) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Actions */}
+      {((context.recoveryActions || []).filter(a => a.priority === 'high').length > 0 ||
+        (context.orchestration?.recoveryIntelligence || []).filter(a => a.priority === 'high').length > 0) && (
+        <div className="pt-2 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="font-mono text-[9px] text-zinc-600 uppercase tracking-wider">Recovery</span>
+          </div>
+          <div className="space-y-0.5">
+            {[...(context.orchestration?.recoveryIntelligence || []), ...(context.recoveryActions || [])]
+              .filter((a, i, arr) => a.priority === 'high' && arr.findIndex(x => x.suggestion === a.suggestion) === i)
+              .slice(0, 2)
+              .map((action, i) => (
+                <p key={i} className="font-mono text-[9px] text-amber-500/50 leading-relaxed">
+                  → {action.suggestion}
+                </p>
+              ))}
           </div>
         </div>
       )}

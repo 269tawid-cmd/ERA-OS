@@ -174,14 +174,28 @@ export interface ProgressionMapping {
 }
 
 export interface OperationalMemory {
-  unfinishedMissionChains: string[]; // Titles of repeatedly appearing unfinished missions
-  neglectedPillarHistory: Record<Pillar, number>; // Count of times each pillar was neglected
-  momentumPeriods: number; // Total days in momentum state
-  recoveryPeriods: number; // Total days in recovery state
-  backlogEscalation: number; // Trend of backlog over time (0-100)
-  roadmapDriftHistory: number; // Cumulative days behind roadmap
-  streakConsistency: number; // Average streak length over time
-  operationalCycles: number; // Number of complete operational cycles observed
+  unfinishedMissionChains: string[];
+  neglectedPillarHistory: Record<Pillar, number>;
+  momentumPeriods: number;
+  recoveryPeriods: number;
+  backlogEscalation: number;
+  roadmapDriftHistory: number;
+  streakConsistency: number;
+  operationalCycles: number;
+  pacingTransitions: PacingTransition[];
+  campaignCompletions: string[];
+  campaignAbandonments: { campaignId: string; completionRatio: number }[];
+  overloadCycleCount: number;
+  effectiveRecoveryCount: number;
+  sustainableExecutionDays: number;
+  firstOperationTimestamp: number | null;
+  lastCounterDay: number;
+  pacingProfileDistribution: Record<string, number>;
+  toolUsageHistory: Record<string, number>;
+  techniqueHistory: Record<string, number>;
+  platformActivity: Record<string, { lastActive: number; entryCount: number; lastOutcome: string }>;
+  unresolvedFindings: string[];
+  writeupSubjects: string[];
 }
 
 export interface OperationalLifecycle {
@@ -223,6 +237,15 @@ export interface OperationalContext {
   operationalConfidence: number;
   recentTasks?: any[];
   strategic?: StrategicContext;
+  missionChains?: MissionChain[];
+  campaigns?: Campaign[];
+  recoveryActions?: RecoveryAction[];
+  orchestration?: OrchestrationContext;
+  operationEvidence?: OperationEvidence[];
+  platforms?: PlatformReference[];
+  researchPatterns?: ResearchPattern[];
+  investigativeMemoryContent?: InvestigativeMemoryContent;
+  knowledgeCrystallization?: KnowledgeCrystallization;
 }
 
 export interface RhythmAnalysis {
@@ -487,7 +510,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.missionLoad > 70 && context.rhythmState !== 'overload') {
     events.push({
       id: `mission-backlog-${now}`,
-      message: 'MISSION BACKLOG DETECTED',
+      message: 'OPERATION QUEUE BACKLOG',
       type: 'warning',
       source: 'mission',
       timestamp: now,
@@ -498,7 +521,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.daysBehindRoadmap > 14) {
     events.push({
       id: `roadmap-drift-${now}`,
-      message: 'ROADMAP DRIFT INCREASING',
+      message: 'STRATEGIC DRIFT DETECTED',
       type: 'warning',
       source: 'roadmap',
       timestamp: now,
@@ -509,7 +532,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.streakStatus === 'cold' && context.fatigueLevel > 30) {
     events.push({
       id: `streak-cold-${now}`,
-      message: 'STREAK RECOVERY NEEDED',
+      message: 'CONTINUITY INTERRUPTION',
       type: 'critical',
       source: 'system',
       timestamp: now,
@@ -520,7 +543,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.rhythmState === 'momentum') {
     events.push({
       id: `momentum-${now}`,
-      message: 'OPERATIONAL MOMENTUM DETECTED',
+      message: 'OPERATIONAL MOMENTUM',
       type: 'success',
       source: 'system',
       timestamp: now,
@@ -531,7 +554,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.rhythmState === 'recovery') {
     events.push({
       id: `recovery-${now}`,
-      message: 'RECOVERY PHASE ACTIVE',
+      message: 'RECOVERY CYCLE ACTIVE',
       type: 'info',
       source: 'system',
       timestamp: now,
@@ -542,7 +565,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.fatigueLevel > 60) {
     events.push({
       id: `fatigue-${now}`,
-      message: 'OPERATIONAL FATIGUE DETECTED',
+      message: 'OPERATOR FATIGUE ACCUMULATING',
       type: 'warning',
       source: 'mentor',
       timestamp: now,
@@ -564,7 +587,7 @@ export function generateOperationalEvents(context: OperationalContext): Operatio
   if (context.operationalPressure === 'critical') {
     events.push({
       id: `critical-${now}`,
-      message: 'OPERATIONAL PRESSURE ELEVATED',
+      message: 'OPERATIONAL PRESSURE SATURATION',
       type: 'critical',
       source: 'system',
       timestamp: now,
@@ -910,9 +933,10 @@ export function computeOperationalMemory(
   } = data;
   
   const now = Date.now();
+  const today = Math.floor(now / 86400000);
   
   // Initialize memory with defaults if none exists
-  const memory = previousMemory || {
+  const memory: OperationalMemory = previousMemory || {
     unfinishedMissionChains: [],
     neglectedPillarHistory: { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 },
     momentumPeriods: 0,
@@ -921,7 +945,25 @@ export function computeOperationalMemory(
     roadmapDriftHistory: 0,
     streakConsistency: 0,
     operationalCycles: 0,
+    pacingTransitions: [],
+    campaignCompletions: [],
+    campaignAbandonments: [],
+    overloadCycleCount: 0,
+    effectiveRecoveryCount: 0,
+    sustainableExecutionDays: 0,
+    firstOperationTimestamp: null,
+    lastCounterDay: 0,
+    pacingProfileDistribution: {},
+    toolUsageHistory: {},
+    techniqueHistory: {},
+    platformActivity: {},
+    unresolvedFindings: [],
+    writeupSubjects: [],
   };
+
+  if (!memory.firstOperationTimestamp) {
+    memory.firstOperationTimestamp = Date.now();
+  }
   
   // Track unfinished mission chains (missions that appear repeatedly)
   const activeMissionTitles = tasks
@@ -931,45 +973,64 @@ export function computeOperationalMemory(
   // Update unfinished mission chains - keep titles that appear in current session
   const unfinishedChains = [...new Set(activeMissionTitles)];
   
-  // Track neglected pillar history
+  // Track neglected pillar history (capped per-counter)
   const neglectedHistory = { ...memory.neglectedPillarHistory };
   context.weakPillars.forEach(pillar => {
     if (pillar === 'HACK' || pillar === 'BUILD' || pillar === 'AI' || pillar === 'PRESENCE') {
-      neglectedHistory[pillar as Pillar] = (neglectedHistory[pillar as Pillar] || 0) + 1;
+      neglectedHistory[pillar as Pillar] = Math.min(365, (neglectedHistory[pillar as Pillar] || 0) + 1);
     }
   });
   
-  // Track momentum and recovery periods (simplified - increment if in state)
-  const momentumAdded = context.rhythmState === 'momentum' ? 1 : 0;
-  const recoveryAdded = context.rhythmState === 'recovery' ? 1 : 0;
+  // Only increment per-cycle counters once per calendar day to prevent per-render inflation
+  const newDay = today !== memory.lastCounterDay;
+  const momentumAdded = newDay && context.rhythmState === 'momentum' ? 1 : 0;
+  const recoveryAdded = newDay && context.rhythmState === 'recovery' ? 1 : 0;
+  const cycleAdded = newDay && (context.streakStatus === 'hot' || context.streakStatus === 'strong') ? 1 : 0;
+  const overloadAdded = newDay && context.rhythmState === 'overload' ? 1 : 0;
+  const recoveryEffAdded = newDay && context.rhythmState === 'momentum' && (memory.recoveryPeriods || 0) > 0 ? 1 : 0;
+  const sustainableAdded = newDay && context.fatigueLevel < 25 && context.rhythmState !== 'overload' && context.rhythmState !== 'stagnation' ? 1 : 0;
+  const lastCounterDay = newDay ? today : memory.lastCounterDay;
   
-  // Track backlog escalation (trend based on current backlog pressure)
+  // Track backlog escalation (exponential moving average — self-limiting)
   const backlogTrend = Math.min(100, Math.round(
     (memory.backlogEscalation * 0.8) + (context.backlogPressure * 0.2)
   ));
   
-  // Track roadmap drift history (cumulative)
+  // Track roadmap drift history (cumulative, capped at 2 years)
   const driftAdded = Math.max(0, context.daysBehindRoadmap);
-  const driftHistory = Math.min(365 * 2, memory.roadmapDriftHistory + driftAdded); // Cap at 2 years
+  const driftHistory = Math.min(365 * 2, memory.roadmapDriftHistory + driftAdded);
   
-  // Track streak consistency (exponential moving average)
+  // Track streak consistency (exponential moving average — self-limiting)
   const streakConsistency = Math.round(
     (memory.streakConsistency * 0.9) + (streakCurrent * 0.1)
   );
   
-  // Track operational cycles (completed streaks of 7+ days)
-  const cycleAdded = context.streakStatus === 'hot' || context.streakStatus === 'strong' ? 1 : 0;
-  const operationalCycles = memory.operationalCycles + cycleAdded;
+  // Track operational cycles (capped at 365)
+  const operationalCycles = Math.min(365, memory.operationalCycles + cycleAdded);
   
   return {
     unfinishedMissionChains: unfinishedChains,
     neglectedPillarHistory: neglectedHistory,
-    momentumPeriods: memory.momentumPeriods + momentumAdded,
-    recoveryPeriods: memory.recoveryPeriods + recoveryAdded,
+    momentumPeriods: Math.min(365, memory.momentumPeriods + momentumAdded),
+    recoveryPeriods: Math.min(365, memory.recoveryPeriods + recoveryAdded),
     backlogEscalation: backlogTrend,
     roadmapDriftHistory: driftHistory,
     streakConsistency: streakConsistency,
     operationalCycles: operationalCycles,
+    pacingTransitions: memory.pacingTransitions || [],
+    campaignCompletions: memory.campaignCompletions || [],
+    campaignAbandonments: memory.campaignAbandonments || [],
+    overloadCycleCount: Math.min(365, (memory.overloadCycleCount || 0) + overloadAdded),
+    effectiveRecoveryCount: Math.min(365, (memory.effectiveRecoveryCount || 0) + recoveryEffAdded),
+    sustainableExecutionDays: Math.min(365, (memory.sustainableExecutionDays || 0) + sustainableAdded),
+    firstOperationTimestamp: memory.firstOperationTimestamp,
+    lastCounterDay,
+    pacingProfileDistribution: memory.pacingProfileDistribution,
+    toolUsageHistory: memory.toolUsageHistory,
+    techniqueHistory: memory.techniqueHistory,
+    platformActivity: memory.platformActivity,
+    unresolvedFindings: memory.unresolvedFindings,
+    writeupSubjects: memory.writeupSubjects,
   };
 }
 
@@ -1102,6 +1163,8 @@ export function computeStrategicContextWithMemory(
     tasksCompleted?: number;
     logsCount?: number;
     ctfCount?: number;
+    logs?: any[];
+    ctfEntries?: any[];
   },
   previousMemory?: OperationalMemory
 ): {
@@ -1118,6 +1181,53 @@ export function computeStrategicContextWithMemory(
   const continuity = computeContinuityContext(memory, lifecycle, context);
   const forecast = computeForecastContext(memory, lifecycle, context, continuity);
   const simulation = computeSimulationContext(memory, lifecycle, context, continuity, forecast);
+
+  const tasks = data.tasks || [];
+
+  const chainsFromTemplate = computeMissionChains(tasks);
+  const chainsFromMemory = computeChainsFromMemory(tasks, memory.unfinishedMissionChains);
+  const allChains = [...chainsFromTemplate, ...chainsFromMemory.filter(
+    mc => !chainsFromTemplate.some(ct => ct.taskIds[0] === mc.taskIds[0])
+  )];
+
+  context.missionChains = allChains;
+  context.campaigns = deriveCampaigns(data.currentMonth || 1, tasks);
+  context.recoveryActions = computeRecoveryActions(context, memory);
+
+  const previousPacing = memory.pacingTransitions.length > 0
+    ? memory.pacingTransitions[memory.pacingTransitions.length - 1].to
+    : null;
+  const orchestration = computeOrchestration(context, memory, allChains, context.campaigns, previousPacing);
+  context.orchestration = orchestration;
+
+  if (orchestration.pacingProfile !== previousPacing && previousPacing !== null) {
+    memory.pacingTransitions = [
+      ...(memory.pacingTransitions || []),
+      {
+        from: previousPacing,
+        to: orchestration.pacingProfile,
+        timestamp: Date.now(),
+        reason: `Orchestration cycle: ${context.rhythmState} / fatigue ${context.fatigueLevel}`,
+      },
+    ];
+  }
+
+  const dist = { ...(memory.pacingProfileDistribution || {}) };
+  dist[orchestration.pacingProfile] = (dist[orchestration.pacingProfile] || 0) + 1;
+  memory.pacingProfileDistribution = dist;
+
+  const evolution = computeSystemEvolution(memory, context, allChains, data.currentMonth || 1);
+  context.orchestration = { ...orchestration, evolution };
+
+  const logs = data.logs || [];
+  const ctfs = data.ctfEntries || [];
+  const evidence = computeOperationEvidence(tasks, ctfs, logs);
+  context.operationEvidence = evidence;
+  context.platforms = computePlatformReferences(ctfs, tasks);
+  context.researchPatterns = computeResearchPatterns(evidence, memory);
+  context.investigativeMemoryContent = computeInvestigativeMemoryContent(evidence, tasks, memory);
+  const campaignStages = context.orchestration?.campaignStages || [];
+  context.knowledgeCrystallization = computeKnowledgeCrystallization(evidence, context.researchPatterns, campaignStages);
 
   return { context, memory, lifecycle, continuity, forecast, simulation };
 }
@@ -1270,9 +1380,10 @@ export function computeOperationalIdentity(
     avgScore < 35 ? 'declining' :
     'stable';
 
-  const totalOperationalDays = Math.min(730, Math.round(
-    (mp + rp) * 0.5 + (memory.roadmapDriftHistory || 0) * 0.1
-  ));
+  const elapsedDays = memory.firstOperationTimestamp
+    ? Math.floor((Date.now() - memory.firstOperationTimestamp) / 86400000)
+    : 0;
+  const totalOperationalDays = Math.min(730, elapsedDays);
 
   return {
     dominantRhythm,
@@ -1923,4 +2034,1583 @@ export function computeSimulationContext(
   const roadmapCompression = computeRoadmapCompression(memory, context, continuity, forecast);
   const recoveryWindow = computeRecoveryWindow(memory, lifecycle, context, continuity, forecast);
   return { scenarios, pressurePropagation, tradeoffs, roadmapCompression, recoveryWindow };
+}
+
+/* ═══════════════════════════════════════════════
+   Deep Operational Workflow Systems
+   Mission Chains, Campaigns, Recovery Engine
+   ═══════════════════════════════════════════════ */
+
+export interface MissionChain {
+  id: string
+  name: string
+  pillar: string
+  taskIds: string[]
+  completedCount: number
+  totalCount: number
+  state: 'dormant' | 'active' | 'resolved' | 'abandoned'
+  createdAt: number
+}
+
+export interface Campaign {
+  id: string
+  name: string
+  description: string
+  pillar: string
+  months: number[]
+  taskCount: number
+  completedCount: number
+}
+
+export interface RecoveryAction {
+  type: 'pacing' | 'focus' | 'consolidation' | 'reduction' | 'stabilization'
+  suggestion: string
+  priority: 'low' | 'medium' | 'high'
+}
+
+export function computeMissionChains(tasks: any[]): MissionChain[] {
+  const now = Date.now()
+  const chains: MissionChain[] = []
+  const grouped = new Map<string, any[]>()
+  const seenKeys = new Set<string>()
+
+  for (const t of tasks) {
+    const key = t.source_template
+    if (!key || seenKeys.has(key)) continue
+    seenKeys.add(key)
+    const chainTasks = tasks.filter((ct: any) => ct.source_template === key)
+    if (chainTasks.length < 2) continue
+    const done = chainTasks.filter((ct: any) => ct.status === 'done')
+    const active = chainTasks.filter((ct: any) => ct.status === 'in_progress')
+    const todo = chainTasks.filter((ct: any) => ct.status === 'todo')
+
+    let state: MissionChain['state'] = 'dormant'
+    if (done.length === chainTasks.length) state = 'resolved'
+    else if (done.length > 0 && active.length === 0 && todo.length === 0) state = 'abandoned'
+    else if (active.length > 0 || done.length > 0) state = 'active'
+
+    chains.push({
+      id: `chain-${key}-${now}`,
+      name: chainTasks[0].title?.substring(0, 60) || 'Untitled chain',
+      pillar: chainTasks[0].pillar || 'HACK',
+      taskIds: chainTasks.map((ct: any) => ct.id),
+      completedCount: done.length,
+      totalCount: chainTasks.length,
+      state,
+      createdAt: Math.min(...chainTasks.map((ct: any) => new Date(ct.created_at).getTime())),
+    })
+  }
+
+  return chains.sort((a, b) => b.totalCount - a.totalCount)
+}
+
+export function deriveCampaigns(
+  currentMonth: number,
+  tasks: any[]
+): Campaign[] {
+  const campaigns: Campaign[] = [
+    { id: 'linux-foundation', name: 'Linux Foundation', description: 'Core Linux and system fundamentals', pillar: 'HACK', months: [1, 2, 3], taskCount: 0, completedCount: 0 },
+    { id: 'web-security', name: 'Web Security Track', description: 'OWASP, Burp Suite, DVWA', pillar: 'HACK', months: [4, 5], taskCount: 0, completedCount: 0 },
+    { id: 'python-tools', name: 'Python Security Tools', description: 'Build security tooling with Python', pillar: 'BUILD', months: [6, 7], taskCount: 0, completedCount: 0 },
+    { id: 'ctf-season', name: 'CTF Season', description: 'CTF challenges and competition practice', pillar: 'HACK', months: [8], taskCount: 0, completedCount: 0 },
+    { id: 'pentester-path', name: 'Jr Pentester Path', description: 'TryHackMe structured pentesting', pillar: 'HACK', months: [9, 10], taskCount: 0, completedCount: 0 },
+    { id: 'privilege-escalation', name: 'Privilege Escalation Arc', description: 'Metasploit and privesc techniques', pillar: 'HACK', months: [11], taskCount: 0, completedCount: 0 },
+    { id: 'consolidation', name: 'Year 1 Consolidation', description: 'Review and consolidate year 1 progress', pillar: 'PRESENCE', months: [12], taskCount: 0, completedCount: 0 },
+    { id: 'ai-systems', name: 'AI Systems Integration', description: 'AI-assisted security workflow automation', pillar: 'AI', months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], taskCount: 0, completedCount: 0 },
+  ]
+
+  for (const campaign of campaigns) {
+    const relevantTasks = tasks.filter((t: any) => campaign.months.includes(t.month))
+    campaign.taskCount = relevantTasks.length
+    campaign.completedCount = relevantTasks.filter((t: any) => t.status === 'done').length
+  }
+
+  return campaigns.filter(c => c.taskCount > 0 || c.months.includes(currentMonth))
+}
+
+export function computeRecoveryActions(
+  context: OperationalContext,
+  memory: OperationalMemory
+): RecoveryAction[] {
+  const actions: RecoveryAction[] = []
+
+  if (context.rhythmState === 'overload' || context.fatigueLevel > 50) {
+    actions.push({
+      type: 'reduction',
+      suggestion: 'Reduce active operations. Focus on 1-2 priorities until backlog stabilizes.',
+      priority: 'high',
+    })
+    actions.push({
+      type: 'pacing',
+      suggestion: 'Reduce daily task target. Prioritize completion over volume.',
+      priority: 'medium',
+    })
+  }
+
+  if (context.rhythmState === 'stagnation' || (context.streakStatus === 'cold' && context.momentumScore < 30)) {
+    actions.push({
+      type: 'stabilization',
+      suggestion: 'Reestablish continuity with small, achievable operations. Streak recovery is primary.',
+      priority: 'high',
+    })
+  }
+
+  if (context.fatigueLevel > 30 && context.fatigueLevel <= 50) {
+    actions.push({
+      type: 'pacing',
+      suggestion: 'Fatigue accumulating. Consider lighter operational load this session.',
+      priority: 'medium',
+    })
+  }
+
+  if (context.weakPillars.length > 1) {
+    actions.push({
+      type: 'focus',
+      suggestion: `Diversify workload. Address neglected areas: ${context.weakPillars.join(', ')}`,
+      priority: 'medium',
+    })
+  }
+
+  if (memory.unfinishedMissionChains.length > 3) {
+    actions.push({
+      type: 'consolidation',
+      suggestion: `${memory.unfinishedMissionChains.length} unresolved chains. Resolve pending operations before initiating new ones.`,
+      priority: 'low',
+    })
+  }
+
+  if (context.daysBehindRoadmap > 7 && context.rhythmState !== 'overload') {
+    actions.push({
+      type: 'focus',
+      suggestion: 'Roadmap drift detected. Align task selection with current roadmap phase.',
+      priority: 'medium',
+    })
+  }
+
+  return actions.sort((a, b) => {
+    const order = { high: 0, medium: 1, low: 2 }
+    return order[a.priority] - order[b.priority]
+  })
+}
+
+export function computeChainsFromMemory(
+  tasks: any[],
+  chainTitles: string[]
+): MissionChain[] {
+  const now = Date.now()
+  const chains: MissionChain[] = []
+
+  for (const title of chainTitles) {
+    const chainTasks = tasks.filter((t: any) => t.title === title)
+    if (chainTasks.length === 0) continue
+    const done = chainTasks.filter((t: any) => t.status === 'done')
+    const active = chainTasks.filter((t: any) => t.status === 'in_progress')
+    const todo = chainTasks.filter((t: any) => t.status === 'todo')
+
+    let state: MissionChain['state'] = 'dormant'
+    if (done.length === chainTasks.length) state = 'resolved'
+    else if (done.length > 0 && active.length === 0 && todo.length === 0) state = 'abandoned'
+    else if (active.length > 0 || done.length > 0) state = 'active'
+
+    chains.push({
+      id: `memory-chain-${title}-${now}`,
+      name: title.substring(0, 60),
+      pillar: chainTasks[0].pillar || 'HACK',
+      taskIds: chainTasks.map((ct: any) => ct.id),
+      completedCount: done.length,
+      totalCount: chainTasks.length,
+      state,
+      createdAt: Math.min(...chainTasks.map((ct: any) => new Date(ct.created_at).getTime())),
+    })
+  }
+
+  return chains
+}
+
+/* ═══════════════════════════════════════════════
+   Adaptive Operational Orchestration Layer
+   Pacing, Campaign Lifecycle, Drift Correction,
+   Continuity Preservation, Recovery Intelligence
+   ═══════════════════════════════════════════════ */
+
+export type PacingProfile = 'acceleration' | 'stabilization' | 'consolidation' | 'recovery' | 'maintenance';
+export type CampaignStage = 'activation' | 'escalation' | 'sustained' | 'consolidation' | 'archived';
+
+export interface CampaignWithStage extends Campaign {
+  stage: CampaignStage;
+  maturityScore: number;
+  operationalBurden: number;
+}
+
+export interface AdaptivePressure {
+  missionDensity: number;
+  operationalLoad: number;
+  recoverySpacing: number;
+  focusIntensity: number;
+  continuityPressure: number;
+}
+
+export interface OperationalCadence {
+  interactionCadence: 'rapid' | 'normal' | 'slow' | 'minimal';
+  acknowledgmentTiming: number;
+  environmentalPacing: 'active' | 'steady' | 'quiet' | 'subdued';
+  missionPressure: 'elevated' | 'normal' | 'reduced' | 'minimal';
+  operationalSilence: boolean;
+}
+
+export interface DriftIndicator {
+  type: 'roadmap_drift' | 'campaign_neglect' | 'pacing_instability' | 'overload_accumulation' | 'continuity_collapse';
+  severity: number;
+  detected: boolean;
+  correction: string;
+}
+
+export interface ContinuityPreservation {
+  dormantChains: { name: string; pillar: string; monthsSinceLastActivity: number; priority: number }[];
+  unresolvedCampaigns: { name: string; completionRatio: number; priority: number }[];
+  preservedContextCount: number;
+}
+
+export interface PacingTransition {
+  from: PacingProfile;
+  to: PacingProfile;
+  timestamp: number;
+  reason: string;
+}
+
+export interface StrategicMemory {
+  pacingHistory: PacingTransition[];
+  campaignCompletions: string[];
+  campaignAbandonments: { campaignId: string; completionRatio: number }[];
+  overloadCycleCount: number;
+  effectiveRecoveryCount: number;
+  sustainableExecutionDays: number;
+}
+
+export interface OrchestrationContext {
+  pacingProfile: PacingProfile;
+  pacingTransitions: PacingTransition[];
+  campaignStages: CampaignWithStage[];
+  adaptivePressure: AdaptivePressure;
+  cadence: OperationalCadence;
+  driftIndicators: DriftIndicator[];
+  continuityPreservation: ContinuityPreservation;
+  strategicMemory: StrategicMemory;
+  recoveryIntelligence: RecoveryAction[];
+  evolution?: SystemEvolutionContext;
+}
+
+export function computePacingProfile(
+  context: OperationalContext,
+  memory: OperationalMemory
+): { profile: PacingProfile; reason: string } {
+  const overloadFatigue = context.rhythmState === 'overload' || context.fatigueLevel > 60;
+  const stagnant = context.rhythmState === 'stagnation' || (context.streakStatus === 'cold' && context.momentumScore < 30);
+  const highMomentum = context.rhythmState === 'momentum' && context.backlogPressure < 30 && context.fatigueLevel < 30;
+  const highPressure = context.operationalPressure === 'critical' || context.backlogPressure > 60;
+  const driftAccumulated = context.daysBehindRoadmap > 7;
+  const fatigueGrowing = context.fatigueLevel > 30 && context.fatigueLevel <= 60;
+
+  if (overloadFatigue) return { profile: 'recovery', reason: 'Overload or fatigue detected — entering recovery pacing' };
+  if (stagnant && driftAccumulated) return { profile: 'consolidation', reason: 'Stagnation with drift — consolidation required' };
+  if (highMomentum) return { profile: 'acceleration', reason: 'Strong momentum with low friction — acceleration viable' };
+  if (stagnant) return { profile: 'consolidation', reason: 'Operational stagnation — consolidating before expansion' };
+  if (highPressure) return { profile: 'stabilization', reason: 'Elevated pressure — stabilizing operational load' };
+  if (driftAccumulated) return { profile: 'stabilization', reason: 'Roadmap drift accumulating — stabilization needed' };
+  if (fatigueGrowing) return { profile: 'maintenance', reason: 'Moderate fatigue — maintaining sustainable pace' };
+
+  return { profile: 'maintenance', reason: 'Balanced operational state — maintaining current rhythm' };
+}
+
+export function computeCampaignStages(
+  campaigns: Campaign[],
+  context: OperationalContext,
+  memory: OperationalMemory
+): CampaignWithStage[] {
+  const now = Date.now();
+
+  return campaigns.map(c => {
+    const ratio = c.taskCount > 0 ? c.completedCount / c.taskCount : 0;
+
+    let stage: CampaignStage;
+    if (ratio === 1 || c.completedCount === c.taskCount) stage = 'archived';
+    else if (ratio > 0.66) stage = 'consolidation';
+    else if (ratio > 0.33) stage = 'sustained';
+    else if (ratio > 0) stage = 'escalation';
+    else stage = 'activation';
+
+    const maturityScore = Math.round(ratio * 100);
+
+    const chainOverlap = context.missionChains
+      ? context.missionChains.filter(ch => ch.pillar === c.pillar && ch.state !== 'resolved').length
+      : 0;
+    const pressureFactor = context.operationalPressure === 'critical' ? 30 : context.operationalPressure === 'high' ? 20 : 10;
+    const chainBurden = chainOverlap * 15;
+    const fatigueBurden = Math.round(context.fatigueLevel * 0.3);
+    const backlogBurden = Math.round(context.backlogPressure * 0.2);
+    const operationalBurden = Math.min(100, pressureFactor + chainBurden + fatigueBurden + backlogBurden);
+
+    return { ...c, stage, maturityScore, operationalBurden };
+  });
+}
+
+export function computeAdaptivePressure(
+  context: OperationalContext,
+  chains: MissionChain[],
+  campaigns: CampaignWithStage[],
+  pacing: PacingProfile
+): AdaptivePressure {
+  const activeChains = chains.filter(c => c.state === 'active').length;
+  const activeCampaigns = campaigns.filter(c => c.stage !== 'archived' && c.stage !== 'activation').length;
+  const chainCompletionAvg = chains.length > 0
+    ? chains.reduce((s, c) => s + (c.totalCount > 0 ? c.completedCount / c.totalCount : 0), 0) / chains.length
+    : 0;
+  const campaignCompletionAvg = campaigns.length > 0
+    ? campaigns.reduce((s, c) => s + (c.taskCount > 0 ? c.completedCount / c.taskCount : 0), 0) / campaigns.length
+    : 0;
+
+  const missionDensity = Math.min(100, Math.round(
+    (context.missionLoad * 0.3) + (activeChains * 12) + (activeCampaigns * 8)
+  ));
+
+  const operationalLoad = Math.min(100, Math.round(
+    context.backlogPressure * 0.4 + context.fatigueLevel * 0.3 + context.missionLoad * 0.3
+  ));
+
+  const baseRecoverySpacing = context.rhythmState === 'recovery' ? 70 : context.fatigueLevel > 50 ? 60 : context.fatigueLevel > 30 ? 45 : 30;
+  const pacingRecoveryAdj = pacing === 'recovery' ? 20 : pacing === 'consolidation' ? 10 : pacing === 'acceleration' ? -10 : 0;
+  const recoverySpacing = Math.max(10, Math.min(100, baseRecoverySpacing + pacingRecoveryAdj));
+
+  const focusIntensity = Math.min(100, Math.round(
+    (context.momentumScore * 0.5) + (chainCompletionAvg * 30) + (pacing === 'acceleration' ? 15 : pacing === 'recovery' ? -15 : 0)
+  ));
+
+  const continuityPressure = Math.min(100, Math.round(
+    ((context.daysBehindRoadmap > 0 ? Math.min(context.daysBehindRoadmap * 5, 50) : 0) +
+    (context.streakStatus === 'cold' ? 25 : context.streakStatus === 'building' ? 10 : 0) +
+    (activeChains > 2 ? 15 : 0) +
+    (campaignCompletionAvg < 0.3 ? 15 : 0)) *
+    (pacing === 'recovery' ? 0.5 : 1)
+  ));
+
+  return { missionDensity, operationalLoad, recoverySpacing, focusIntensity, continuityPressure };
+}
+
+export function computeOperationalCadence(
+  pacing: PacingProfile,
+  pressure: AdaptivePressure,
+  context: OperationalContext
+): OperationalCadence {
+  const highPressure = pressure.operationalLoad > 60 || pressure.missionDensity > 60;
+  const lowPressure = pressure.operationalLoad < 25 && pressure.missionDensity < 25;
+  const fatigueModerate = context.fatigueLevel > 40;
+  const fatigueHigh = context.fatigueLevel > 65;
+
+  let interactionCadence: OperationalCadence['interactionCadence'];
+  let environmentalPacing: OperationalCadence['environmentalPacing'];
+  let missionPressure: OperationalCadence['missionPressure'];
+  let operationalSilence: boolean;
+  let acknowledgmentTiming: number;
+
+  if (pacing === 'recovery' || fatigueHigh) {
+    interactionCadence = 'minimal';
+    environmentalPacing = 'subdued';
+    missionPressure = 'minimal';
+    operationalSilence = true;
+    acknowledgmentTiming = 500;
+  } else if (pacing === 'consolidation' || fatigueModerate) {
+    interactionCadence = 'slow';
+    environmentalPacing = 'quiet';
+    missionPressure = 'reduced';
+    operationalSilence = true;
+    acknowledgmentTiming = 2500;
+  } else if (pacing === 'stabilization' || highPressure) {
+    interactionCadence = 'normal';
+    environmentalPacing = 'steady';
+    missionPressure = 'elevated';
+    operationalSilence = false;
+    acknowledgmentTiming = 3500;
+  } else if (pacing === 'acceleration' && !lowPressure) {
+    interactionCadence = 'rapid';
+    environmentalPacing = 'active';
+    missionPressure = 'elevated';
+    operationalSilence = false;
+    acknowledgmentTiming = 1500;
+  } else {
+    interactionCadence = 'normal';
+    environmentalPacing = 'steady';
+    missionPressure = 'normal';
+    operationalSilence = lowPressure && !fatigueModerate;
+    acknowledgmentTiming = 2500;
+  }
+
+  return { interactionCadence, acknowledgmentTiming, environmentalPacing, missionPressure, operationalSilence };
+}
+
+export function computeDriftIndicators(
+  context: OperationalContext,
+  campaigns: CampaignWithStage[],
+  chains: MissionChain[],
+  operationalMemory: OperationalMemory
+): DriftIndicator[] {
+  const indicators: DriftIndicator[] = [];
+
+  const roadmapDrift: DriftIndicator = {
+    type: 'roadmap_drift',
+    severity: Math.min(100, context.daysBehindRoadmap * 5 + (context.rhythmState === 'stagnation' ? 20 : 0)),
+    detected: context.daysBehindRoadmap > 3,
+    correction: context.daysBehindRoadmap > 7
+      ? 'Align task selection with current roadmap phase. Prioritize roadmap-critical operations.'
+      : 'Monitor roadmap alignment. Minor deviation detected.',
+  };
+  indicators.push(roadmapDrift);
+
+  const neglectedCampaigns = campaigns.filter(c =>
+    c.taskCount > 0 && c.completedCount === 0 && c.stage !== 'archived'
+  );
+  const campaignNeglect: DriftIndicator = {
+    type: 'campaign_neglect',
+    severity: Math.min(100, neglectedCampaigns.length * 20),
+    detected: neglectedCampaigns.length > 0,
+    correction: neglectedCampaigns.length > 0
+      ? `Initiate work in neglected campaigns: ${neglectedCampaigns.slice(0, 2).map(c => c.name).join(', ')}`
+      : '',
+  };
+  indicators.push(campaignNeglect);
+
+  const overloadHistory = operationalMemory.backlogEscalation > 60 ? 1 : 0;
+  const fatigueIndication = context.fatigueLevel > 50 ? 1 : 0;
+  const driftHistory = operationalMemory.roadmapDriftHistory > 14 ? 1 : 0;
+  const pacingInstabilityCount = overloadHistory + fatigueIndication + driftHistory;
+  const pacingInstability: DriftIndicator = {
+    type: 'pacing_instability',
+    severity: Math.min(100, pacingInstabilityCount * 30),
+    detected: pacingInstabilityCount >= 2,
+    correction: pacingInstabilityCount >= 2
+      ? 'Pacing instability detected. Reduce concurrent operations and stabilize cadence.'
+      : '',
+  };
+  indicators.push(pacingInstability);
+
+  const overloadAccumulation: DriftIndicator = {
+    type: 'overload_accumulation',
+    severity: Math.min(100, (context.backlogPressure * 0.5 + context.fatigueLevel * 0.3 + (context.operationalPressure === 'critical' ? 30 : context.operationalPressure === 'high' ? 15 : 0))),
+    detected: context.backlogPressure > 50 && context.fatigueLevel > 30,
+    correction: context.backlogPressure > 60
+      ? 'Overload accumulating. Reduce intake. Focus on clearing backlog before new operations.'
+      : 'Monitor load. Partial offloading recommended.',
+  };
+  indicators.push(overloadAccumulation);
+
+  const activeChains = chains.filter(c => c.state === 'active').length;
+  const chainInterruption = context.streakStatus === 'cold' && activeChains > 1;
+  const continuityCollapse: DriftIndicator = {
+    type: 'continuity_collapse',
+    severity: chainInterruption ? 70 : context.streakStatus === 'cold' ? 40 : context.streakStatus === 'building' ? 15 : 0,
+    detected: chainInterruption || context.streakStatus === 'cold',
+    correction: chainInterruption
+      ? 'Streak collapsed with active chains. Recover continuity before resuming chain operations.'
+      : context.streakStatus === 'cold'
+        ? 'Continuity cold. Prioritize streak recovery to preserve operational context.'
+        : '',
+  };
+  indicators.push(continuityCollapse);
+
+  return indicators;
+}
+
+export function computeContinuityPreservation(
+  chains: MissionChain[],
+  campaigns: CampaignWithStage[],
+  context: OperationalContext
+): ContinuityPreservation {
+  const dormantChains = chains
+    .filter(c => c.state === 'dormant' || c.state === 'abandoned')
+    .map(c => {
+      const monthsSinceLastActivity = Math.max(1, Math.round(
+        (Date.now() - c.createdAt) / (30 * 24 * 60 * 60 * 1000)
+      ));
+      const completionRatio = c.totalCount > 0 ? c.completedCount / c.totalCount : 0;
+      const priority = completionRatio > 0.5 ? 3 : completionRatio > 0.25 ? 2 : 1;
+      return { name: c.name, pillar: c.pillar, monthsSinceLastActivity, priority };
+    })
+    .sort((a, b) => b.priority - a.priority);
+
+  const unresolvedCampaigns = campaigns
+    .filter(c => c.taskCount > 0 && c.completedCount < c.taskCount && c.stage !== 'archived')
+    .map(c => {
+      const ratio = c.taskCount > 0 ? c.completedCount / c.taskCount : 0;
+      const priority = ratio > 0.5 ? 2 : ratio > 0.25 ? 3 : 1;
+      return { name: c.name, completionRatio: Math.round(ratio * 100), priority };
+    })
+    .sort((a, b) => b.priority - a.priority);
+
+  return {
+    dormantChains,
+    unresolvedCampaigns,
+    preservedContextCount: dormantChains.length + unresolvedCampaigns.length,
+  };
+}
+
+export function computeRecoveryIntelligence(
+  context: OperationalContext,
+  chains: MissionChain[],
+  campaigns: CampaignWithStage[],
+  pacing: PacingProfile
+): RecoveryAction[] {
+  const actions: RecoveryAction[] = [];
+
+  if (pacing === 'recovery' || context.fatigueLevel > 50) {
+    const activeCount = chains.filter(c => c.state === 'active').length;
+    if (activeCount > 2) {
+      actions.push({
+        type: 'reduction',
+        suggestion: `Structured recovery: reduce active chains from ${activeCount} to 1-2. Focus on completion, not initiation.`,
+        priority: 'high',
+      });
+    }
+    const nearCompleteChains = chains.filter(c => c.state === 'active' && c.totalCount > 0 && (c.completedCount / c.totalCount) > 0.6);
+    if (nearCompleteChains.length > 0) {
+      actions.push({
+        type: 'consolidation',
+        suggestion: `Close near-complete chains first: ${nearCompleteChains.slice(0, 2).map(c => c.name.substring(0, 20)).join(', ')}`,
+        priority: 'high',
+      });
+    }
+    actions.push({
+      type: 'stabilization',
+      suggestion: 'Low-friction phase: small achievable operations. Avoid new campaign initiations.',
+      priority: 'medium',
+    });
+  }
+
+  if (pacing === 'consolidation') {
+    const neglectedCampaigns = campaigns.filter(c => c.maturityScore < 30 && c.taskCount > 0);
+    actions.push({
+      type: 'focus',
+      suggestion: `Campaign consolidation: address ${neglectedCampaigns.length} underdeveloped campaign${neglectedCampaigns.length > 1 ? 's' : ''} before expanding scope.`,
+      priority: 'medium',
+    });
+  }
+
+  if (pacing === 'acceleration') {
+    actions.push({
+      type: 'pacing',
+      suggestion: 'Acceleration window open. Prioritize high-XP missions to capitalize on momentum.',
+      priority: 'medium',
+    });
+  }
+
+  return actions;
+}
+
+export function accumulateStrategicMemory(
+  previousMemory: OperationalMemory,
+  pacing: PacingProfile,
+  previousPacingProfile: PacingProfile | null,
+  campaigns: CampaignWithStage[],
+  context: OperationalContext
+): StrategicMemory {
+  const pacingHistory: PacingTransition[] = previousMemory.pacingTransitions
+    ? [...previousMemory.pacingTransitions]
+    : [];
+
+  if (previousPacingProfile && previousPacingProfile !== pacing) {
+    pacingHistory.push({
+      from: previousPacingProfile,
+      to: pacing,
+      timestamp: Date.now(),
+      reason: `Pacing shift: ${context.rhythmState} / fatigue ${context.fatigueLevel} / backlog ${context.backlogPressure}`,
+    });
+  }
+
+  const campaignCompletions: string[] = previousMemory.campaignCompletions
+    ? [...previousMemory.campaignCompletions]
+    : [];
+  for (const c of campaigns) {
+    if (c.stage === 'archived' && !campaignCompletions.includes(c.id)) {
+      campaignCompletions.push(c.id);
+    }
+  }
+
+  const campaignAbandonments: { campaignId: string; completionRatio: number }[] =
+    previousMemory.campaignAbandonments ? [...previousMemory.campaignAbandonments] : [];
+
+  const overloadCycleCount = (previousMemory.overloadCycleCount || 0) +
+    (context.rhythmState === 'overload' ? 1 : 0);
+
+  const effectiveRecoveryCount = (previousMemory.effectiveRecoveryCount || 0) +
+    (context.rhythmState === 'momentum' && previousMemory.recoveryPeriods > 0 ? 1 : 0);
+
+  const sustainableExecutionDays = (previousMemory.sustainableExecutionDays || 0) +
+    (context.fatigueLevel < 25 && context.rhythmState !== 'overload' && context.rhythmState !== 'stagnation' ? 1 : 0);
+
+  return {
+    pacingHistory,
+    campaignCompletions,
+    campaignAbandonments,
+    overloadCycleCount,
+    effectiveRecoveryCount,
+    sustainableExecutionDays,
+  };
+}
+
+/* ═══════════════════════════════════════════════
+   Historical Persistence & System Evolution
+   Temperament, Maturity, Scar Tissue, Cadence
+   ═══════════════════════════════════════════════ */
+
+export type OperationalTemperament =
+  | 'momentum_oriented'
+  | 'recovery_oriented'
+  | 'stabilization_focused'
+  | 'consolidation_oriented'
+  | 'adaptive';
+
+export type EnvironmentalMaturityLevel = 'nascent' | 'developing' | 'established' | 'mature' | 'seasoned';
+
+export interface TemperamentProfile {
+  temperament: OperationalTemperament;
+  confidence: number;
+}
+
+export interface EnvironmentalMaturityProfile {
+  level: EnvironmentalMaturityLevel;
+  maturityIndex: number;
+  atmosphericDensity: number;
+  temporalCompression: number;
+}
+
+export interface ScarTissueProfile {
+  overloadSensitivity: number;
+  driftSensitivity: number;
+  abandonmentSensitivity: number;
+  continuitySensitivity: number;
+  isHardened: boolean;
+}
+
+export interface CampaignHistoricalSignificance {
+  campaignId: string;
+  completed: boolean;
+  completionRatio: number;
+  significance: number;
+  archivalDate: number | null;
+  influenceWeight: number;
+}
+
+export interface LongTermCadenceModifiers {
+  baselineAcknowledgmentShift: number;
+  silenceProbability: number;
+  densityCompression: number;
+  pacingStability: number;
+}
+
+export interface SystemEvolutionContext {
+  temperament: TemperamentProfile;
+  environment: EnvironmentalMaturityProfile;
+  scarTissue: ScarTissueProfile;
+  campaignHistory: CampaignHistoricalSignificance[];
+  cadenceModifiers: LongTermCadenceModifiers;
+  operationalResidue: number;
+}
+
+export function computeOperationalTemperament(
+  distribution: Record<string, number>,
+  totalCycles: number,
+  recentTransitions: PacingTransition[]
+): TemperamentProfile {
+  const entries = Object.entries(distribution);
+  if (entries.length === 0) {
+    return { temperament: 'adaptive', confidence: 30 };
+  }
+
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  if (total === 0) return { temperament: 'adaptive', confidence: 30 };
+
+  const sorted = entries.sort(([, a], [, b]) => b - a);
+  const dominant = sorted[0][0] as PacingProfile;
+  const dominantShare = sorted[0][1] / total;
+  const secondShare = sorted.length > 1 ? sorted[1][1] / total : 0;
+  const dominanceMargin = dominantShare - secondShare;
+
+  const recentWindow = recentTransitions.slice(-8);
+  const recentMomentum = recentWindow.filter(t => t.to === 'acceleration').length;
+  const recentRecovery = recentWindow.filter(t => t.to === 'recovery').length;
+  const recentStabilization = recentWindow.filter(t => t.to === 'stabilization').length;
+  const recentConsolidation = recentWindow.filter(t => t.to === 'consolidation').length;
+
+  let temperament: OperationalTemperament;
+  let confidence: number;
+
+  if (dominantShare > 0.5 && dominanceMargin > 0.2) {
+    confidence = Math.min(85, 50 + Math.round(dominantShare * 50));
+    temperament = dominant as OperationalTemperament;
+  } else if (recentMomentum >= 4 && recentRecovery < 2) {
+    temperament = 'momentum_oriented';
+    confidence = 60 + Math.round(recentMomentum * 5);
+  } else if (recentRecovery >= 3 && recentStabilization >= 2) {
+    temperament = 'recovery_oriented';
+    confidence = 55 + Math.round(recentRecovery * 8);
+  } else if (recentConsolidation >= 3) {
+    temperament = 'consolidation_oriented';
+    confidence = 55 + Math.round(recentConsolidation * 8);
+  } else if (recentStabilization >= recentMomentum) {
+    temperament = 'stabilization_focused';
+    confidence = 50 + Math.round(recentStabilization * 10);
+  } else if (dominantShare > 0.3) {
+    temperament = dominant as OperationalTemperament;
+    confidence = 45 + Math.round(dominantShare * 30);
+  } else {
+    temperament = 'adaptive';
+    confidence = 40 + Math.round(dominanceMargin * 30);
+  }
+
+  return { temperament, confidence: Math.min(95, Math.max(20, confidence)) };
+}
+
+export function computeEnvironmentalMaturity(
+  firstOperationTimestamp: number | null,
+  totalCycles: number,
+  totalChains: number,
+  resolvedChains: number,
+  archivedCampaigns: number,
+  operationalMemory: OperationalMemory
+): EnvironmentalMaturityProfile {
+  const ageDays = firstOperationTimestamp
+    ? Math.floor((Date.now() - firstOperationTimestamp) / (24 * 60 * 60 * 1000))
+    : 0;
+
+  const cycleScale = Math.min(totalCycles * 5, 30);
+  const chainScale = Math.min(totalChains * 3, 20);
+  const resolutionScale = Math.min(resolvedChains * 5, 20);
+  const campaignScale = Math.min(archivedCampaigns * 10, 30);
+  const maturityIndex = Math.min(100, ageDays + cycleScale + chainScale + resolutionScale + campaignScale);
+
+  let level: EnvironmentalMaturityLevel;
+  if (maturityIndex < 15) level = 'nascent';
+  else if (maturityIndex < 35) level = 'developing';
+  else if (maturityIndex < 55) level = 'established';
+  else if (maturityIndex < 80) level = 'mature';
+  else level = 'seasoned';
+
+  const densityDays = Math.min(ageDays * 0.3, 20);
+  const densityOps = Math.min(totalCycles * 2, 15);
+  const densityChains = Math.min(totalChains * 1.5, 15);
+  const densityCampaigns = Math.min(archivedCampaigns * 5, 15);
+  const atmosphericDensity = Math.min(100, densityDays + densityOps + densityChains + densityCampaigns);
+
+  const temporalCompression = Math.min(100,
+    (operationalMemory.backlogEscalation || 0) * 0.2 +
+    (operationalMemory.roadmapDriftHistory || 0) * 0.3 +
+    (operationalMemory.overloadCycleCount || 0) * 3 +
+    densityOps * 0.5
+  );
+
+  return { level, maturityIndex, atmosphericDensity, temporalCompression };
+}
+
+export function computeScarTissue(
+  overloadCycleCount: number,
+  totalDays: number,
+  driftHistory: number,
+  abandonedChains: number,
+  totalChains: number,
+  coldStreakFrequency: number
+): ScarTissueProfile {
+  const normalizedAge = Math.max(1, totalDays);
+
+  const overloadSensitivity = Math.min(100, Math.round(
+    (overloadCycleCount / normalizedAge) * 200
+  ));
+
+  const driftSensitivity = Math.min(100, Math.round(
+    (driftHistory / normalizedAge) * 50
+  ));
+
+  const abandonmentSensitivity = totalChains > 0
+    ? Math.min(100, Math.round((abandonedChains / totalChains) * 100))
+    : 0;
+
+  const continuitySensitivity = Math.min(100, Math.round(
+    coldStreakFrequency * 20
+  ));
+
+  const sensitivitySum = overloadSensitivity + driftSensitivity + abandonmentSensitivity + continuitySensitivity;
+  const isHardened = sensitivitySum > 140 || overloadSensitivity > 60 || driftSensitivity > 50;
+
+  return {
+    overloadSensitivity,
+    driftSensitivity,
+    abandonmentSensitivity,
+    continuitySensitivity,
+    isHardened,
+  };
+}
+
+export function computeCampaignHistoricalSignificance(
+  campaigns: Campaign[],
+  campaignCompletions: string[],
+  campaignAbandonments: { campaignId: string; completionRatio: number }[]
+): CampaignHistoricalSignificance[] {
+  const history: CampaignHistoricalSignificance[] = [];
+  const now = Date.now();
+
+  for (const c of campaigns) {
+    const completed = campaignCompletions.includes(c.id);
+    const abandoned = campaignAbandonments.find(a => a.campaignId === c.id);
+    const completionRatio = completed ? 1 : abandoned ? abandoned.completionRatio : c.taskCount > 0 ? c.completedCount / c.taskCount : 0;
+
+    if (!completed && !abandoned && completionRatio === 0) continue;
+
+    const completionBonus = completionRatio * 40;
+    const taskWeight = Math.min(c.taskCount * 2, 20);
+    const campaignAge = now - (c.months[0] * 30 * 24 * 60 * 60 * 1000);
+    const archivalBonus = completed ? 15 : 0;
+    const significance = Math.min(100, Math.round(completionBonus + taskWeight + archivalBonus));
+
+    const influenceWeight = completed
+      ? Math.round(completionRatio * 60 - 20)
+      : Math.round(completionRatio * 30 - 10);
+
+    history.push({
+      campaignId: c.id,
+      completed,
+      completionRatio,
+      significance,
+      archivalDate: completed ? now : null,
+      influenceWeight,
+    });
+  }
+
+  return history.sort((a, b) => b.significance - a.significance);
+}
+
+export function computeLongTermCadenceModifiers(
+  maturity: EnvironmentalMaturityProfile,
+  scarTissue: ScarTissueProfile,
+  temperament: TemperamentProfile
+): LongTermCadenceModifiers {
+  const maturitySlowing = Math.round(maturity.maturityIndex * 15);
+  const scarTissueDensification = Math.round((scarTissue.overloadSensitivity + scarTissue.driftSensitivity) * 0.8);
+  const densityCompression = Math.min(100, maturity.atmosphericDensity + scarTissueDensification);
+
+  const baselineAcknowledgmentShift = Math.min(2000, maturitySlowing + (temperament.temperament === 'recovery_oriented' ? 300 : temperament.temperament === 'momentum_oriented' ? -200 : 0));
+
+  const temperamentSilence = temperament.temperament === 'consolidation_oriented' ? 0.15 : temperament.temperament === 'adaptive' ? 0.05 : 0;
+  const maturitySilence = maturity.maturityIndex * 0.002;
+  const silenceProbability = Math.min(0.5, temperamentSilence + maturitySilence);
+
+  const stabilityBase = temperament.temperament === 'stabilization_focused' ? 25 : 15;
+  const stabilityMaturity = maturity.maturityIndex * 0.3;
+  const stabilityScarPenalty = scarTissue.isHardened ? -10 : 0;
+  const pacingStability = Math.max(10, Math.min(95, stabilityBase + stabilityMaturity + stabilityScarPenalty));
+
+  return {
+    baselineAcknowledgmentShift,
+    silenceProbability,
+    densityCompression,
+    pacingStability,
+  };
+}
+
+export function computeOperationalResidue(
+  memory: OperationalMemory,
+  chains: MissionChain[],
+  temperament: TemperamentProfile
+): number {
+  const resolvedRatio = chains.length > 0
+    ? chains.filter(c => c.state === 'resolved').length / chains.length
+    : 0;
+
+  const campaignCompletionRatio = memory.campaignCompletions.length > 0
+    ? Math.min(1, (memory.campaignCompletions.length || 0) / Math.max(1, (memory.campaignCompletions.length || 0) + (memory.campaignAbandonments.length || 0)))
+    : 0;
+
+  const residueCompletion = Math.round(resolvedRatio * 25);
+  const residueCampaign = Math.round(campaignCompletionRatio * 20);
+  const residueCycles = Math.min((memory.operationalCycles || 0) * 3, 20);
+  const residueSustain = Math.min((memory.sustainableExecutionDays || 0) * 0.5, 15);
+  const temperamentBonus = temperament.temperament === 'momentum_oriented' || temperament.temperament === 'consolidation_oriented' ? 10 : 5;
+
+  return Math.min(100, residueCompletion + residueCampaign + residueCycles + residueSustain + temperamentBonus);
+}
+
+export function computeSystemEvolution(
+  memory: OperationalMemory,
+  context: OperationalContext,
+  chains: MissionChain[],
+  currentMonth: number
+): SystemEvolutionContext {
+  const totalAgeDays = memory.firstOperationTimestamp
+    ? Math.floor((Date.now() - memory.firstOperationTimestamp) / (24 * 60 * 60 * 1000))
+    : 0;
+
+  const temperament = computeOperationalTemperament(
+    memory.pacingProfileDistribution || {},
+    memory.operationalCycles || 0,
+    memory.pacingTransitions || []
+  );
+
+  const environment = computeEnvironmentalMaturity(
+    memory.firstOperationTimestamp,
+    memory.operationalCycles || 0,
+    chains.length,
+    chains.filter(c => c.state === 'resolved').length,
+    (memory.campaignCompletions || []).length,
+    memory
+  );
+
+  const scarTissue = computeScarTissue(
+    memory.overloadCycleCount || 0,
+    totalAgeDays,
+    memory.roadmapDriftHistory || 0,
+    chains.filter(c => c.state === 'abandoned').length,
+    chains.length,
+    context.streakStatus === 'cold' ? 3 : context.streakStatus === 'building' ? 1 : 0
+  );
+
+  const campaigns = context.campaigns || [];
+  const campaignHistory = computeCampaignHistoricalSignificance(
+    campaigns,
+    memory.campaignCompletions || [],
+    memory.campaignAbandonments || []
+  );
+
+  const cadenceModifiers = computeLongTermCadenceModifiers(environment, scarTissue, temperament);
+
+  const operationalResidue = computeOperationalResidue(memory, chains, temperament);
+
+  return {
+    temperament,
+    environment,
+    scarTissue,
+    campaignHistory,
+    cadenceModifiers,
+    operationalResidue,
+  };
+}
+
+/* ═══════════════════════════════════════════════
+   Real-World Operational Integration
+   Evidence Chains, Platform Linking, Residue
+   ═══════════════════════════════════════════════ */
+
+export type EvidenceType =
+  | 'recon'
+  | 'finding'
+  | 'exploit_attempt'
+  | 'writeup_fragment'
+  | 'terminal_discovery'
+  | 'observation'
+  | 'research_trace';
+
+export interface OperationEvidence {
+  id: string;
+  type: EvidenceType;
+  title: string;
+  description: string;
+  source: 'task' | 'ctf' | 'log';
+  sourceId: string;
+  platform?: string;
+  technique?: string;
+  tool?: string;
+  timestamp: number;
+  resolved: boolean;
+  xpValue: number;
+}
+
+export interface EvidenceChain {
+  evidences: OperationEvidence[];
+  subject: string;
+  platform?: string;
+  technique?: string;
+  status: 'active' | 'dormant' | 'resolved';
+}
+
+export interface PlatformReference {
+  platform: string;
+  identifier: string;
+  lastActive: number;
+  entryCount: number;
+  lastOutcome: string;
+}
+
+export interface ResearchPattern {
+  toolOrTechnique: string;
+  type: 'tool' | 'technique';
+  frequency: number;
+  lastUsed: number;
+  contexts: string[];
+  effectiveness: number;
+}
+
+export interface InvestigativeMemoryContent {
+  unresolvedFindings: { subject: string; source: string; platform?: string; staleDays: number; priority: number }[];
+  abandonedPaths: { subject: string; evidenceCount: number; context: string }[];
+  recurringTargets: { target: string; frequency: number; lastEncountered: number }[];
+  researchDrift: string[];
+}
+
+export function computeOperationEvidence(
+  tasks: any[],
+  ctfs: any[],
+  logs: any[]
+): OperationEvidence[] {
+  const evidence: OperationEvidence[] = [];
+  const now = Date.now();
+
+  for (const t of tasks) {
+    if (t.status === 'done') {
+      evidence.push({
+        id: `ev-task-${t.id}`,
+        type: 'observation',
+        title: t.title?.substring(0, 60) || 'Untitled',
+        description: t.description || '',
+        source: 'task',
+        sourceId: t.id,
+        platform: t.pillar,
+        technique: t.category,
+        timestamp: new Date(t.completed_at || t.created_at).getTime(),
+        resolved: true,
+        xpValue: t.xp_value || 0,
+      });
+    }
+    if (t.status === 'in_progress') {
+      evidence.push({
+        id: `ev-task-${t.id}-active`,
+        type: 'recon',
+        title: t.title?.substring(0, 60) || 'Untitled',
+        description: t.description || '',
+        source: 'task',
+        sourceId: t.id,
+        platform: t.pillar,
+        technique: t.category,
+        timestamp: new Date(t.created_at).getTime(),
+        resolved: false,
+        xpValue: 0,
+      });
+    }
+  }
+
+  for (const c of ctfs) {
+    evidence.push({
+      id: `ev-ctf-${c.id}`,
+      type: c.solved ? 'writeup_fragment' : 'exploit_attempt',
+      title: c.name || 'Untitled challenge',
+      description: c.flag_notes || '',
+      source: 'ctf',
+      sourceId: c.id,
+      platform: c.platform,
+      technique: c.category,
+      timestamp: new Date(c.date || now).getTime(),
+      resolved: c.solved,
+      xpValue: c.xp_earned || 0,
+    });
+  }
+
+  for (const l of logs) {
+    evidence.push({
+      id: `ev-log-${l.id}`,
+      type: 'observation',
+      title: (l.content?.substring(0, 60) || 'Untitled').trim(),
+      description: l.content || '',
+      source: 'log',
+      sourceId: l.id,
+      platform: l.pillar,
+      timestamp: new Date(l.date || now).getTime(),
+      resolved: l.is_win || false,
+      xpValue: 0,
+    });
+  }
+
+  return evidence.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+export function computePlatformReferences(
+  ctfs: any[],
+  tasks: any[]
+): PlatformReference[] {
+  const platformMap = new Map<string, PlatformReference>();
+
+  for (const c of ctfs) {
+    const key = c.platform || 'Other';
+    const existing = platformMap.get(key);
+    const ts = new Date(c.date || Date.now()).getTime();
+    if (existing) {
+      existing.entryCount++;
+      if (ts > existing.lastActive) {
+        existing.lastActive = ts;
+        existing.lastOutcome = c.solved ? 'solved' : 'attempted';
+      }
+    } else {
+      platformMap.set(key, {
+        platform: key,
+        identifier: c.name || c.platform || '',
+        lastActive: ts,
+        entryCount: 1,
+        lastOutcome: c.solved ? 'solved' : 'attempted',
+      });
+    }
+  }
+
+  return Array.from(platformMap.values()).sort((a, b) => b.entryCount - a.entryCount);
+}
+
+export function computeResearchPatterns(
+  evidence: OperationEvidence[],
+  memory: OperationalMemory
+): ResearchPattern[] {
+  const patternMap = new Map<string, ResearchPattern>();
+
+  for (const ev of evidence) {
+    if (ev.technique) {
+      const key = `tech:${ev.technique}`;
+      const existing = patternMap.get(key);
+      if (existing) {
+        existing.frequency++;
+        if (ev.timestamp > existing.lastUsed) existing.lastUsed = ev.timestamp;
+        if (!existing.contexts.includes(ev.platform || '')) existing.contexts.push(ev.platform || '');
+        existing.effectiveness = Math.round(
+          (existing.effectiveness * (existing.frequency - 1) + (ev.resolved ? 100 : 0)) / existing.frequency
+        );
+      } else {
+        patternMap.set(key, {
+          toolOrTechnique: ev.technique,
+          type: 'technique',
+          frequency: 1,
+          lastUsed: ev.timestamp,
+          contexts: ev.platform ? [ev.platform] : [],
+          effectiveness: ev.resolved ? 100 : 0,
+        });
+      }
+    }
+  }
+
+  for (const [tool, count] of Object.entries(memory.toolUsageHistory || {})) {
+    const key = `tool:${tool}`;
+    const existing = patternMap.get(key);
+    if (existing) {
+      existing.frequency += count;
+    } else {
+      patternMap.set(key, {
+        toolOrTechnique: tool,
+        type: 'tool',
+        frequency: count,
+        lastUsed: Date.now(),
+        contexts: [],
+        effectiveness: 50,
+      });
+    }
+  }
+
+  return Array.from(patternMap.values())
+    .filter(p => p.frequency > 0)
+    .sort((a, b) => b.frequency - a.frequency);
+}
+
+export function computeInvestigativeMemoryContent(
+  evidence: OperationEvidence[],
+  tasks: any[],
+  memory: OperationalMemory
+): InvestigativeMemoryContent {
+  const now = Date.now();
+  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+
+  const unresolved = evidence
+    .filter(e => !e.resolved && e.type !== 'observation')
+    .map(e => ({
+      subject: e.title,
+      source: e.source,
+      platform: e.platform,
+      staleDays: Math.floor((now - e.timestamp) / (24 * 60 * 60 * 1000)),
+      priority: Math.min(5, Math.floor((now - e.timestamp) / oneWeekMs) + 1),
+    }))
+    .filter(u => u.staleDays > 0)
+    .sort((a, b) => b.priority - a.priority);
+
+  const abandoned = tasks
+    .filter(t => t.status === 'done' && t.completed_at)
+    .slice(0, 10)
+    .reduce((acc, t) => {
+      const existingTasks = tasks.filter(ot => ot.source_template === t.source_template && ot.status !== 'done');
+      if (existingTasks.length > 0) {
+        acc.push({
+          subject: t.title?.substring(0, 60) || '',
+          evidenceCount: existingTasks.length,
+          context: t.category || 'general',
+        });
+      }
+      return acc;
+    }, [] as { subject: string; evidenceCount: number; context: string }[]);
+
+  const targetFreq = new Map<string, number>();
+  const targetLast = new Map<string, number>();
+  for (const ev of evidence) {
+    const key = ev.platform || 'unknown';
+    targetFreq.set(key, (targetFreq.get(key) || 0) + 1);
+    targetLast.set(key, Math.max(targetLast.get(key) || 0, ev.timestamp));
+  }
+  const recurring = Array.from(targetFreq.entries())
+    .filter(([, f]) => f > 1)
+    .map(([target, frequency]) => ({
+      target,
+      frequency,
+      lastEncountered: targetLast.get(target) || 0,
+    }))
+    .sort((a, b) => b.frequency - a.frequency);
+
+  const researchDrift = memory.unresolvedFindings
+    ? memory.unresolvedFindings.slice(0, 3)
+    : [];
+
+  return { unresolvedFindings: unresolved.slice(0, 8), abandonedPaths: abandoned.slice(0, 5), recurringTargets: recurring.slice(0, 5), researchDrift };
+}
+
+/* ═══════════════════════════════════════════════
+   Operational Knowledge Crystallization
+   References, Doctrines, Specialization, Residue
+   ═══════════════════════════════════════════════ */
+
+export interface CrystallizedReference {
+  id: string;
+  type: 'path' | 'methodology' | 'sequence' | 'workflow' | 'pattern';
+  title: string;
+  description: string;
+  weight: number;
+  recurrence: number;
+  successRate: number;
+  relatedCampaigns: string[];
+  relatedPlatforms: string[];
+  lastRelevant: number;
+  maturity: 'emerging' | 'established' | 'seasoned';
+}
+
+export interface OperationalDoctrine {
+  id: string;
+  approach: string;
+  category: string;
+  frequency: number;
+  effectiveness: number;
+  confidence: number;
+  recentTransitions: number;
+}
+
+export interface TechniqueSpecialization {
+  technique: string;
+  type: 'tool' | 'technique' | 'methodology';
+  mastery: number;
+  usageCount: number;
+  successCount: number;
+  contexts: string[];
+  trend: 'growing' | 'stable' | 'declining';
+}
+
+export interface KnowledgeResidue {
+  heuristics: { observation: string; weight: number; source: string }[];
+  methodologyResidue: { pattern: string; recurrence: number; confidence: number }[];
+  exploitPathReferences: CrystallizedReference[];
+  strategicReferences: CrystallizedReference[];
+}
+
+export interface KnowledgeCrystallization {
+  references: CrystallizedReference[];
+  doctrines: OperationalDoctrine[];
+  specializations: TechniqueSpecialization[];
+  residue: KnowledgeResidue;
+  crystallizationIndex: number;
+}
+
+export function computeCrystallizedReferences(
+  evidence: OperationEvidence[],
+  patterns: ResearchPattern[],
+  campaigns: CampaignWithStage[]
+): CrystallizedReference[] {
+  const refs: CrystallizedReference[] = [];
+  const now = Date.now();
+
+  const techniqueEvidence = new Map<string, OperationEvidence[]>();
+  const platformTechnique = new Map<string, OperationEvidence[]>();
+
+  for (const ev of evidence) {
+    if (ev.technique) {
+      const existing = techniqueEvidence.get(ev.technique) || [];
+      existing.push(ev);
+      techniqueEvidence.set(ev.technique, existing);
+    }
+    if (ev.platform && ev.technique) {
+      const key = `${ev.platform}::${ev.technique}`;
+      const existing = platformTechnique.get(key) || [];
+      existing.push(ev);
+      platformTechnique.set(key, existing);
+    }
+  }
+
+  for (const [technique, evs] of techniqueEvidence) {
+    if (evs.length < 3) continue;
+    const resolved = evs.filter(e => e.resolved).length;
+    const successRate = Math.round((resolved / evs.length) * 100);
+    const platforms = [...new Set(evs.map(e => e.platform).filter(Boolean))] as string[];
+
+    let maturity: CrystallizedReference['maturity'];
+    if (evs.length >= 16) maturity = 'seasoned';
+    else if (evs.length >= 6) maturity = 'established';
+    else maturity = 'emerging';
+
+    const weight = Math.min(100,
+      (evs.length * 5) +
+      (successRate * 0.3) +
+      (maturity === 'seasoned' ? 20 : maturity === 'established' ? 10 : 0) +
+      (platforms.length * 5)
+    );
+
+    refs.push({
+      id: `ref-tech-${technique}`,
+      type: 'methodology',
+      title: technique,
+      description: `Applied ${evs.length} times across ${platforms.length} platform${platforms.length > 1 ? 's' : ''}`,
+      weight,
+      recurrence: evs.length,
+      successRate,
+      relatedCampaigns: campaigns.filter(c => c.pillar === evs[0].platform).map(c => c.id),
+      relatedPlatforms: platforms,
+      lastRelevant: Math.max(...evs.map(e => e.timestamp)),
+      maturity,
+    });
+  }
+
+  for (const [key, evs] of platformTechnique) {
+    if (evs.length < 2) continue;
+    const [platform, technique] = key.split('::');
+    const resolved = evs.filter(e => e.resolved).length;
+    const successRate = Math.round((resolved / evs.length) * 100);
+
+    refs.push({
+      id: `ref-path-${key}`,
+      type: 'path',
+      title: `${platform} → ${technique}`,
+      description: `Repeated ${evs.length} times, ${resolved} resolved`,
+      weight: Math.min(100, (evs.length * 8) + (successRate * 0.2)),
+      recurrence: evs.length,
+      successRate,
+      relatedCampaigns: [],
+      relatedPlatforms: [platform],
+      lastRelevant: Math.max(...evs.map(e => e.timestamp)),
+      maturity: evs.length >= 8 ? 'seasoned' : evs.length >= 4 ? 'established' : 'emerging',
+    });
+  }
+
+  for (const p of patterns) {
+    if (p.frequency < 3) continue;
+    const existingRef = refs.find(r => r.title === p.toolOrTechnique);
+    if (existingRef) {
+      existingRef.weight = Math.min(100, existingRef.weight + p.frequency * 2);
+      continue;
+    }
+    refs.push({
+      id: `ref-pattern-${p.toolOrTechnique}`,
+      type: p.type === 'tool' ? 'workflow' : 'pattern',
+      title: p.toolOrTechnique,
+      description: `${p.type} used ${p.frequency} times`,
+      weight: Math.min(100, p.frequency * 8 + p.effectiveness * 0.2),
+      recurrence: p.frequency,
+      successRate: p.effectiveness,
+      relatedCampaigns: [],
+      relatedPlatforms: p.contexts,
+      lastRelevant: p.lastUsed,
+      maturity: p.frequency >= 20 ? 'seasoned' : p.frequency >= 8 ? 'established' : 'emerging',
+    });
+  }
+
+  return refs.sort((a, b) => b.weight - a.weight);
+}
+
+export function computeTechniqueSpecializations(
+  patterns: ResearchPattern[],
+  references: CrystallizedReference[]
+): TechniqueSpecialization[] {
+  const specializations: TechniqueSpecialization[] = [];
+
+  for (const p of patterns) {
+    if (p.frequency < 2) continue;
+    const ref = references.find(r => r.title === p.toolOrTechnique);
+    const recentWindow = 30 * 24 * 60 * 60 * 1000;
+    const recentCount = ref?.recurrence ? Math.min(ref.recurrence, Math.round(p.frequency * 0.3)) : 0;
+    const priorCount = p.frequency - recentCount;
+
+    let trend: 'growing' | 'stable' | 'declining';
+    if (recentCount > priorCount * 1.5 && priorCount > 0) trend = 'growing';
+    else if (recentCount < priorCount * 0.5 && priorCount > 0) trend = 'declining';
+    else trend = 'stable';
+
+    const mastery = Math.min(100, Math.round(
+      (p.frequency * 3) +
+      (p.effectiveness * 0.4) +
+      (p.contexts.length * 5)
+    ));
+
+    specializations.push({
+      technique: p.toolOrTechnique,
+      type: p.type,
+      mastery,
+      usageCount: p.frequency,
+      successCount: Math.round(p.frequency * (p.effectiveness / 100)),
+      contexts: p.contexts,
+      trend,
+    });
+  }
+
+  return specializations.sort((a, b) => b.mastery - a.mastery);
+}
+
+export function computeOperationalDoctrines(
+  references: CrystallizedReference[],
+  specializations: TechniqueSpecialization[]
+): OperationalDoctrine[] {
+  const doctrines: OperationalDoctrine[] = [];
+
+  const topRefs = references.filter(r => r.weight > 30 && r.maturity !== 'emerging');
+  const topSpecs = specializations.filter(s => s.mastery > 30);
+
+  if (topSpecs.length > 0) {
+    const toolCount = topSpecs.filter(s => s.type === 'tool').length;
+    const techCount = topSpecs.filter(s => s.type === 'technique').length;
+    const dominant = toolCount > techCount ? 'tool-centric' : techCount > toolCount ? 'technique-centric' : 'balanced';
+
+    doctrines.push({
+      id: 'doctrine-approach',
+      approach: dominant,
+      category: 'operational_approach',
+      frequency: topSpecs.length,
+      effectiveness: Math.round(topSpecs.reduce((s, sp) => s + sp.mastery, 0) / topSpecs.length),
+      confidence: Math.min(85, 40 + topSpecs.length * 3),
+      recentTransitions: topSpecs.filter(s => s.trend === 'growing').length,
+    });
+  }
+
+  const pathRefs = references.filter(r => r.type === 'path' && r.weight > 25);
+  if (pathRefs.length > 0) {
+    doctrines.push({
+      id: 'doctrine-path-recurrence',
+      approach: pathRefs.length > 3 ? 'path-exploration' : 'focused-deep-dive',
+      category: 'investigative_pattern',
+      frequency: pathRefs.length,
+      effectiveness: Math.round(pathRefs.reduce((s, r) => s + r.successRate, 0) / pathRefs.length),
+      confidence: Math.min(80, 30 + pathRefs.length * 8),
+      recentTransitions: pathRefs.filter(r => r.maturity !== 'emerging').length,
+    });
+  }
+
+  const highSuccess = references.filter(r => r.successRate > 70 && r.recurrence > 2);
+  if (highSuccess.length > 0) {
+    doctrines.push({
+      id: 'doctrine-success-patterns',
+      approach: 'high-success-methodology',
+      category: 'reliability',
+      frequency: highSuccess.length,
+      effectiveness: Math.round(highSuccess.reduce((s, r) => s + r.successRate, 0) / highSuccess.length),
+      confidence: Math.min(90, 50 + highSuccess.length * 5),
+      recentTransitions: highSuccess.filter(r => r.maturity === 'seasoned').length,
+    });
+  }
+
+  return doctrines;
+}
+
+export function computeKnowledgeResidue(
+  references: CrystallizedReference[],
+  specializations: TechniqueSpecialization[],
+  evidence: OperationEvidence[]
+): KnowledgeResidue {
+  const heuristics = references
+    .filter(r => r.weight > 40 && r.maturity !== 'emerging')
+    .slice(0, 5)
+    .map(r => ({
+      observation: `${r.title}: ${r.description}`,
+      weight: r.weight,
+      source: r.type,
+    }));
+
+  const methodologyResidue = specializations
+    .filter(s => s.mastery > 40)
+    .slice(0, 5)
+    .map(s => ({
+      pattern: s.technique,
+      recurrence: s.usageCount,
+      confidence: Math.min(90, 30 + s.mastery * 0.5),
+    }));
+
+  const exploitPathRefs = references.filter(r => r.type === 'path' && r.weight > 30);
+  const strategicRefs = references.filter(r => r.type !== 'path' && r.weight > 30);
+
+  return {
+    heuristics,
+    methodologyResidue,
+    exploitPathReferences: exploitPathRefs,
+    strategicReferences: strategicRefs,
+  };
+}
+
+export function computeKnowledgeCrystallization(
+  evidence: OperationEvidence[],
+  patterns: ResearchPattern[],
+  campaigns: CampaignWithStage[]
+): KnowledgeCrystallization {
+  const references = computeCrystallizedReferences(evidence, patterns, campaigns);
+  const specializations = computeTechniqueSpecializations(patterns, references);
+  const doctrines = computeOperationalDoctrines(references, specializations);
+  const residue = computeKnowledgeResidue(references, specializations, evidence);
+
+  const refMaturity = references.length > 0
+    ? references.reduce((s, r) => s + (r.maturity === 'seasoned' ? 30 : r.maturity === 'established' ? 15 : 5), 0) / Math.max(1, references.length)
+    : 0;
+  const specDepth = specializations.length > 0
+    ? specializations.reduce((s, sp) => s + sp.mastery, 0) / Math.max(1, specializations.length)
+    : 0;
+  const doctrineConfidence = doctrines.length > 0
+    ? doctrines.reduce((s, d) => s + d.confidence, 0) / doctrines.length
+    : 0;
+
+  const crystallizationIndex = Math.min(100, Math.round(
+    (refMaturity * 0.3) + (specDepth * 0.3) + (doctrineConfidence * 0.2) + (residue.heuristics.length * 5)
+  ));
+
+  return { references, doctrines, specializations, residue, crystallizationIndex };
+}
+
+export function computeOrchestration(
+  context: OperationalContext,
+  memory: OperationalMemory,
+  chains: MissionChain[],
+  campaigns: Campaign[],
+  previousPacingProfile: PacingProfile | null
+): OrchestrationContext {
+  const { profile: pacingProfile, reason } = computePacingProfile(context, memory);
+
+  const campaignStages = computeCampaignStages(campaigns, context, memory);
+
+  const adaptivePressure = computeAdaptivePressure(context, chains, campaignStages, pacingProfile);
+
+  const cadence = computeOperationalCadence(pacingProfile, adaptivePressure, context);
+
+  const driftIndicators = computeDriftIndicators(context, campaignStages, chains, memory);
+
+  const continuityPreservation = computeContinuityPreservation(chains, campaignStages, context);
+
+  const strategicMemory = accumulateStrategicMemory(memory, pacingProfile, previousPacingProfile, campaignStages, context);
+
+  const recoveryIntelligence = computeRecoveryIntelligence(context, chains, campaignStages, pacingProfile);
+
+  const pacingTransitions = memory.pacingTransitions || [];
+
+  return {
+    pacingProfile,
+    pacingTransitions,
+    campaignStages,
+    adaptivePressure,
+    cadence,
+    driftIndicators,
+    continuityPreservation,
+    strategicMemory,
+    recoveryIntelligence,
+  };
 }

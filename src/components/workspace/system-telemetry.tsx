@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWorkspaceState } from './workspace-state';
 
 interface TelemetryProps {
@@ -23,7 +23,19 @@ export function SystemTelemetry({
   
   const [time, setTime] = useState<string>('--:--:--');
   const [uptime, setUptime] = useState(0);
+  const lastUpdateRef = useRef(Date.now());
+  const [freshness, setFreshness] = useState('now');
   
+  useEffect(() => {
+    lastUpdateRef.current = Date.now();
+    setFreshness('now');
+  }, [
+    context.operationalPressure, context.streakStatus, context.backlogPressure,
+    context.mentorUrgency, context.missionLoad, context.readinessLevel,
+    context.platforms?.length, context.researchPatterns?.length,
+    logsCount, ctfCount,
+  ]);
+
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -33,6 +45,15 @@ export function SystemTelemetry({
         minute: '2-digit',
         second: '2-digit'
       }));
+
+      const elapsed = Math.floor((Date.now() - lastUpdateRef.current) / 1000);
+      if (elapsed < 5) {
+        setFreshness('now');
+      } else if (elapsed < 60) {
+        setFreshness(`${elapsed}s ago`);
+      } else {
+        setFreshness(`${Math.floor(elapsed / 60)}m ago`);
+      }
     };
     
     updateTime();
@@ -52,13 +73,13 @@ export function SystemTelemetry({
   const getSystemStatus = () => {
     switch (operationalPressure) {
       case 'critical':
-        return { text: 'STRESSED', color: 'text-red-400', glow: 'bg-red-500' };
+        return { text: 'SATURATED', color: 'text-red-400', glow: 'bg-red-500' };
       case 'high':
-        return { text: 'ACTIVE', color: 'text-amber-400', glow: 'bg-amber-500' };
+        return { text: 'ELEVATED', color: 'text-amber-400', glow: 'bg-amber-500' };
       case 'medium':
-        return { text: 'NOMINAL', color: 'text-zinc-400', glow: 'bg-zinc-500' };
+        return { text: 'STEADY', color: 'text-zinc-400', glow: 'bg-zinc-500' };
       default:
-        return { text: 'OPTIMAL', color: 'text-emerald-400', glow: 'bg-emerald-500' };
+        return { text: 'NOMINAL', color: 'text-emerald-400', glow: 'bg-emerald-500' };
     }
   };
 
@@ -66,10 +87,10 @@ export function SystemTelemetry({
 
   return (
     <div className="space-y-3">
-      {/* System Clock */}
+      {/* System Time */}
       <div className="flex items-center justify-between p-3 bg-zinc-900/30 border border-zinc-800/20 rounded">
         <div>
-          <p className="font-mono text-[10px] text-zinc-600 uppercase">System Clock</p>
+          <p className="font-mono text-[10px] text-zinc-600 uppercase">System Time</p>
           <p className="font-mono text-xl text-zinc-200 tracking-widest">{time}</p>
         </div>
         <div className="text-right">
@@ -92,19 +113,19 @@ export function SystemTelemetry({
             streakStatus === 'cold' ? 'text-red-400' :
             'text-emerald-400'
           }`}>{streakCurrent}</p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Streak</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Continuity</p>
         </div>
         <div className="p-2 bg-zinc-900/20 border border-zinc-800/10 rounded text-center">
           <p className="font-mono text-xl text-zinc-200">{tasksCompleted}/{tasksTotal}</p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Tasks</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Ops</p>
         </div>
         <div className="p-2 bg-zinc-900/20 border border-zinc-800/10 rounded text-center">
           <p className="font-mono text-xl text-amber-400">{logsCount}</p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">Logs</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Sessions</p>
         </div>
         <div className="p-2 bg-zinc-900/20 border border-zinc-800/10 rounded text-center">
           <p className="font-mono text-xl text-red-400">{ctfCount}</p>
-          <p className="font-mono text-[9px] text-zinc-600 uppercase">CTFs</p>
+          <p className="font-mono text-[9px] text-zinc-600 uppercase">Security</p>
         </div>
       </div>
 
@@ -143,8 +164,125 @@ export function SystemTelemetry({
           <span className="text-zinc-700">v0.1.0</span>
           <span className="text-zinc-700">•</span>
           <span className={status.color}>{status.text}</span>
+          <span className="text-zinc-700">•</span>
+          <span className="text-zinc-600">{freshness}</span>
         </div>
       </div>
+
+      {/* Orchestration Telemetry */}
+      {context.orchestration?.pacingProfile && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-2 text-[9px] font-mono">
+            <span className="text-zinc-600">pace</span>
+            <span className={`${
+              context.orchestration.pacingProfile === 'acceleration' ? 'text-emerald-500/50' :
+              context.orchestration.pacingProfile === 'stabilization' ? 'text-amber-500/50' :
+              context.orchestration.pacingProfile === 'consolidation' ? 'text-zinc-500' :
+              context.orchestration.pacingProfile === 'recovery' ? 'text-blue-500/50' :
+              'text-zinc-600'
+            }`}>
+              {context.orchestration.pacingProfile.slice(0, 4).toUpperCase()}
+            </span>
+            <span className="text-zinc-700">|</span>
+            <span className="text-zinc-600">cadence</span>
+            <span className="text-zinc-500">{context.orchestration.cadence.interactionCadence}</span>
+            <span className="text-zinc-700">/</span>
+            <span className="text-zinc-500">{context.orchestration.cadence.environmentalPacing}</span>
+          </div>
+        </div>
+      )}
+
+      {context.orchestration?.driftIndicators && context.orchestration.driftIndicators.some(d => d.detected) && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-1.5 text-[9px] font-mono flex-wrap">
+            <span className="text-zinc-600">drift</span>
+            {context.orchestration.driftIndicators.filter(d => d.detected && d.severity > 20).slice(0, 3).map(d => (
+              <span key={d.type} className={`${
+                d.severity > 60 ? 'text-red-500/50' : d.severity > 30 ? 'text-amber-500/50' : 'text-amber-500/30'
+              }`}>
+                {d.type === 'roadmap_drift' ? 'rd' : d.type === 'campaign_neglect' ? 'cn' : d.type === 'pacing_instability' ? 'pi' : d.type === 'overload_accumulation' ? 'oa' : 'cc'}
+                {d.severity}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {context.orchestration?.strategicMemory && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-1.5 text-[8px] font-mono">
+            <span className="text-zinc-700">mem</span>
+            <span className="text-zinc-600">
+              {context.orchestration.strategicMemory.pacingHistory.length}pc
+            </span>
+            <span className="text-zinc-700">/</span>
+            <span className="text-zinc-600">
+              {context.orchestration.strategicMemory.campaignCompletions.length}cm
+            </span>
+            <span className="text-zinc-700">/</span>
+            <span className="text-zinc-600">
+              {context.orchestration.strategicMemory.overloadCycleCount}ol
+            </span>
+            <span className="text-zinc-700">/</span>
+            <span className={context.orchestration.strategicMemory.sustainableExecutionDays > 3 ? 'text-emerald-500/40' : 'text-zinc-600'}>
+              {context.orchestration.strategicMemory.sustainableExecutionDays}d
+            </span>
+            {context.orchestration.evolution && (
+              <>
+                <span className="text-zinc-700">|</span>
+                <span className="text-zinc-600">
+                  {context.orchestration.evolution.environment.level.slice(0, 4)}
+                </span>
+                <span className="text-zinc-700">/</span>
+                <span className={`${
+                  context.orchestration.evolution.temperament.temperament === 'momentum_oriented' ? 'text-emerald-500/40' :
+                  context.orchestration.evolution.temperament.temperament === 'recovery_oriented' ? 'text-blue-500/40' :
+                  context.orchestration.evolution.temperament.temperament === 'stabilization_focused' ? 'text-amber-500/40' :
+                  context.orchestration.evolution.temperament.temperament === 'consolidation_oriented' ? 'text-zinc-500' :
+                  'text-zinc-600'
+                }`}>
+                  {context.orchestration.evolution.temperament.temperament === 'momentum_oriented' ? 'mo' :
+                   context.orchestration.evolution.temperament.temperament === 'recovery_oriented' ? 'ro' :
+                   context.orchestration.evolution.temperament.temperament === 'stabilization_focused' ? 'sf' :
+                   context.orchestration.evolution.temperament.temperament === 'consolidation_oriented' ? 'co' :
+                   'ad'}
+                </span>
+                {context.orchestration.evolution.operationalResidue > 50 && (
+                  <span className="text-zinc-700">{context.orchestration.evolution.operationalResidue}r</span>
+                )}
+                {context.orchestration.evolution.scarTissue.isHardened && (
+                  <span className="text-zinc-600">•</span>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {context.researchPatterns && context.researchPatterns.length > 0 && (
+        <div className="pt-1.5 border-t border-zinc-800/20">
+          <div className="flex items-center gap-1.5 text-[8px] font-mono">
+            <span className="text-zinc-700">ops</span>
+            <span className="text-zinc-600">{context.operationEvidence?.length || 0}ev</span>
+            <span className="text-zinc-700">/</span>
+            <span className="text-zinc-600">{context.platforms?.length || 0}pf</span>
+            <span className="text-zinc-700">/</span>
+            <span className="text-zinc-600">{context.researchPatterns.length}pt</span>
+            {context.investigativeMemoryContent && context.investigativeMemoryContent.unresolvedFindings.length > 0 && (
+              <>
+                <span className="text-zinc-700">/</span>
+                <span className="text-amber-500/40">{context.investigativeMemoryContent.unresolvedFindings.length}un</span>
+              </>
+            )}
+            {context.knowledgeCrystallization && (
+              <>
+                <span className="text-zinc-700">/</span>
+                <span className="text-zinc-600">{context.knowledgeCrystallization.crystallizationIndex}kc</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

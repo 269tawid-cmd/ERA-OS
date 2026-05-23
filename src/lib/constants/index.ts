@@ -36,10 +36,10 @@ export const PRIORITIES: Record<Priority, { label: string; value: number }> = {
 };
 
 export const TASK_STATUSES: Record<TaskStatus, { label: string; color: string }> = {
-  todo: { label: 'To Do', color: '#6b7280' },
-  in_progress: { label: 'In Progress', color: '#3b82f6' },
-  done: { label: 'Done', color: '#22c55e' },
-  abandoned: { label: 'Abandoned', color: '#ef4444' },
+  todo: { label: 'Pending', color: '#6b7280' },
+  in_progress: { label: 'Engaged', color: '#3b82f6' },
+  done: { label: 'Resolved', color: '#22c55e' },
+  abandoned: { label: 'Archived', color: '#ef4444' },
 };
 
 export const XP_VALUES: Record<Priority, number> = {

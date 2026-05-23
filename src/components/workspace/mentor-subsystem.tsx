@@ -1,7 +1,37 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useWorkspaceState } from './workspace-state';
+
+const SUSTAINED_OVERLOAD: string[] = [
+  "Still in overload. Clear small tasks to regain momentum.",
+  "Extended pressure cycle. Completion > initiation right now.",
+  "Operational load persistent. Consider pruning low-priority items.",
+];
+
+const SUSTAINED_MOMENTUM: string[] = [
+  "Momentum sustained. Deep work is viable now.",
+  "Consistent execution phase. Push strategic priorities.",
+  "Strong rhythm continuing. Layer in harder objectives.",
+];
+
+const SUSTAINED_STAGNATION: string[] = [
+  "Still stalled. One completed task breaks the pattern.",
+  "Prolonged inactivity. The hardest part is starting.",
+  "Same state persists. Change one variable today.",
+];
+
+const SUSTAINED_FATIGUE: string[] = [
+  "Fatigue lingering. Rest and small wins only.",
+  "Still running low. Quality over output.",
+  "Recovery takes time. Light operations only.",
+];
+
+const SUSTAINED_RECOVERY: string[] = [
+  "Recovery sustaining. Keep the pace manageable.",
+  "Steady recovery continuing. Don't rush it.",
+  "Building back consistently. Stay patient.",
+];
 
 const PHASE_INSIGHTS: Record<number, string[]> = {
   1: ["Phase 1 is foundational. Master the basics before moving forward."],
@@ -125,13 +155,15 @@ const STRATEGIC_MESSAGES: Record<string, string[]> = {
 export function MentorSubsystem({ 
   pillarXP = { HACK: 0, BUILD: 0, AI: 0, PRESENCE: 0 },
   streakCurrent = 0,
-  currentMonth = 1
+  currentMonth = 1,
+  panelId = 'mentor-subsystem',
 }: { 
   pillarXP?: Record<string, number>;
   streakCurrent?: number;
   currentMonth?: number;
+  panelId?: string;
 }) {
-  const { context, memory, lifecycle, continuity, forecast, simulation } = useWorkspaceState();
+  const { context, memory, lifecycle, continuity, state } = useWorkspaceState();
   const { 
     mentorUrgency, 
     weakPillars, 
@@ -146,6 +178,8 @@ export function MentorSubsystem({
   const [insightIndex, setInsightIndex] = useState(0);
   const [insight, setInsight] = useState('');
   const [strategicInsight, setStrategicInsight] = useState('');
+  const staleCyclesRef = useRef(0);
+  const lastRhythmRef = useRef(rhythmState);
 
   const totalXP = useMemo(() => 
     Object.values(pillarXP).reduce((a, b) => a + b, 0), 
@@ -206,16 +240,34 @@ export function MentorSubsystem({
   };
 
   useEffect(() => {
+    if (rhythmState !== lastRhythmRef.current) {
+      staleCyclesRef.current = 0;
+      lastRhythmRef.current = rhythmState;
+    } else {
+      staleCyclesRef.current += 1;
+    }
+
+    const sustained = staleCyclesRef.current >= 6;
     let messages: string[] = [];
     
-    if (rhythmState === 'overload') {
+    if (rhythmState === 'overload' && sustained) {
+      messages = SUSTAINED_OVERLOAD;
+    } else if (rhythmState === 'overload') {
       messages = OVERLOAD_MESSAGES;
+    } else if (rhythmState === 'fatigue' && sustained) {
+      messages = SUSTAINED_FATIGUE;
     } else if (rhythmState === 'fatigue') {
       messages = FATIGUE_MESSAGES;
+    } else if (rhythmState === 'stagnation' && sustained) {
+      messages = SUSTAINED_STAGNATION;
     } else if (rhythmState === 'stagnation') {
       messages = STAGNATION_MESSAGES;
+    } else if (rhythmState === 'momentum' && sustained) {
+      messages = SUSTAINED_MOMENTUM;
     } else if (rhythmState === 'momentum') {
       messages = MOMENTUM_MESSAGES;
+    } else if (rhythmState === 'recovery' && sustained) {
+      messages = SUSTAINED_RECOVERY;
     } else if (rhythmState === 'recovery') {
       messages = RECOVERY_MESSAGES;
     } else if (operationalPressure === 'critical') {
@@ -241,12 +293,15 @@ export function MentorSubsystem({
     setStrategicInsight(strategicMsg || '');
   }, [strategic, rhythmState, weakPillars]);
 
+  const isFocused = state.focusedPanelId === panelId;
+
   useEffect(() => {
+    if (!isFocused) return;
     const interval = setInterval(() => {
       setInsightIndex(prev => prev + 1);
     }, getInsightPace());
     return () => clearInterval(interval);
-  }, [rhythmState]);
+  }, [rhythmState, isFocused]);
 
   const mentorTone = getMentorTone();
 
@@ -478,92 +533,6 @@ export function MentorSubsystem({
         </div>
       )}
       
-      {/* Strategic Forecast */}
-      {forecast && forecast.temporal.confidence > 25 && (
-        <div className="pt-2 border-t border-zinc-800/20">
-          <div className="flex items-center gap-1 mb-1.5">
-            <span className="font-mono text-[9px] text-zinc-600 uppercase">Forecast</span>
-            <span className={`font-mono text-[7px] ${
-              forecast.temporal.confidence > 50 ? 'text-zinc-600' : 'text-zinc-700'
-            }`}>
-              fc:{forecast.temporal.confidence}%
-            </span>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {forecast.sustainability.status !== 'sustainable' && (
-              <span className={`font-mono text-[7px] ${
-                forecast.sustainability.status === 'overload_risk' ? 'text-red-500/30' :
-                forecast.sustainability.status === 'unstable' ? 'text-amber-500/30' :
-                'text-emerald-500/30'
-              }`}>
-                • {forecast.sustainability.status.replace('_', ' ')}
-              </span>
-            )}
-            {forecast.temporal.overloadProbability > 40 && forecast.temporal.confidence > 30 && (
-              <span className="font-mono text-[7px] text-amber-500/30">
-                • overload {forecast.temporal.overloadProbability}%
-              </span>
-            )}
-            {forecast.drift.driftRiskTrend !== 'stable' && forecast.drift.confidence > 25 && (
-              <span className={`font-mono text-[7px] ${
-                forecast.drift.driftRiskTrend === 'increasing' ? 'text-amber-500/30' : 'text-emerald-500/30'
-              }`}>
-                • drift {forecast.drift.driftRiskTrend}
-              </span>
-            )}
-            {forecast.temporal.executionStability < 50 && forecast.temporal.confidence > 35 && (
-              <span className="font-mono text-[7px] text-amber-500/30">
-                • stability {forecast.temporal.executionStability}%
-              </span>
-            )}
-            {forecast.sustainability.burnoutRisk > 50 && forecast.sustainability.confidence > 30 && (
-              <span className="font-mono text-[7px] text-red-500/30">
-                • burnout risk
-              </span>
-            )}
-            {forecast.sustainability.loadCapacity < 40 && forecast.sustainability.confidence > 30 && (
-              <span className="font-mono text-[7px] text-amber-500/30">
-                • capacity {forecast.sustainability.loadCapacity}%
-              </span>
-            )}
-          </div>
-          {forecast.drift.driftArrivalWeeks > 0 && forecast.drift.driftArrivalWeeks <= 3 && (
-            <p className="font-mono text-[8px] text-amber-500/25 mt-1 leading-relaxed">
-              Current pacing may reach significant drift within {forecast.drift.driftArrivalWeeks} week{forecast.drift.driftArrivalWeeks > 1 ? 's' : ''}.
-            </p>
-          )}
-          {forecast.sustainability.recommendedPacing !== 'maintain' && forecast.temporal.confidence > 35 && (
-            <p className="font-mono text-[8px] text-zinc-500/25 mt-1 leading-relaxed">
-              Pacing recommendation: {forecast.sustainability.recommendedPacing === 'slow' ? 'reduce workload to prevent overload' : 'sustainable — deeper work supported'}.
-            </p>
-          )}
-          {/* Simulation-Aware Pressure Guidance */}
-          {simulation && simulation.tradeoffs && simulation.pressurePropagation.confidence > 20 && (
-            <div className="mt-1 space-y-0.5">
-              <p className="font-mono text-[8px] text-zinc-500/25 leading-relaxed">
-                pressure chain: {simulation.pressurePropagation.source} → {simulation.pressurePropagation.propagationPath.slice(0, 3).join(' → ')}
-                (stage {simulation.pressurePropagation.currentStage}/3)
-              </p>
-              {simulation.roadmapCompression.compressionRisk === 'high' && (
-                <p className="font-mono text-[8px] text-red-500/20 leading-relaxed">
-                  roadmap compression estimated in ~{simulation.roadmapCompression.estimatedCompressionWeeks}w
-                  {simulation.roadmapCompression.recoveryWindowShrinking ? ' — recovery window narrowing' : ''}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0.5; }
-          to { opacity: 1; }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-in-out;
-        }
-      `}</style>
     </div>
   );
 }

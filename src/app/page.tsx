@@ -89,39 +89,36 @@ export default async function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen text-zinc-200">
+    <div className="min-h-screen text-zinc-200 animate-page-enter">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <header className="mb-8">
           <div className="hud-frame p-4 sm:p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="status-indicator font-mono text-xs text-emerald-400 system-pulse">SYSTEM ACTIVE</span>
-                  <span className="font-mono text-xs text-zinc-600">era-os</span>
-                  <span className="font-mono text-xs text-zinc-700">v0.1.0</span>
+                  <span className="font-mono text-[10px] text-zinc-700 tracking-widest uppercase">era-os · operational interface</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-red-500 text-lg">▸</span>
-                  <h1 className="font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
-                    COMMAND CENTER
+                  <h1 className="terminal-heading font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
+                    OPERATIONAL BRIEFING
                   </h1>
                 </div>
-                <p className="font-mono text-sm text-zinc-500 mt-2 ml-6">
-                  Roadmap-aware operations interface
+                <p className="font-mono text-sm text-zinc-600 mt-2 ml-6">
+                  Roadmap-aware operations terminal
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <Link href="/import">
                   <Button variant="secondary" size="sm" className="hidden sm:flex border-zinc-700/60">
-                    <span className="text-zinc-500 mr-1">+</span> Import Roadmap
+                    <span className="text-zinc-500 mr-1">+</span> Load Blueprint
                   </Button>
                 </Link>
                 <Link
                   href="/roadmap"
-                  className="font-mono text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700/60 px-4 py-2.5 rounded-md hover:bg-zinc-800/50 transition-all duration-150 flex items-center gap-2"
+                  className="font-mono text-sm text-zinc-500 hover:text-zinc-200 border border-zinc-700/60 px-4 py-2.5 rounded-md hover:bg-zinc-800/50 transition-all duration-150 flex items-center gap-2"
                 >
-                  <span className="text-zinc-500">{'→'}</span>
-                  View Roadmap
+                  <span className="text-zinc-600">{'→'}</span>
+                  Strategic View
                 </Link>
               </div>
             </div>
@@ -131,7 +128,7 @@ export default async function Dashboard() {
         <div className="sm:hidden mb-6">
           <Link href="/import">
             <Button variant="secondary" size="sm" className="w-full">
-              + Import Roadmap
+              + Load Blueprint
             </Button>
           </Link>
         </div>
@@ -197,9 +194,9 @@ export default async function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
           <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
-              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                Learning Log
-              </h2>
+                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                  Session Log
+                </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <LearningLogForm />
@@ -211,9 +208,9 @@ export default async function Dashboard() {
 
           <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
-              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                CTF Tracker
-              </h2>
+                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                  Security Log
+                </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <CTFForm />
@@ -227,9 +224,9 @@ export default async function Dashboard() {
         <div className="mb-6">
           <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
             <CardHeader className="pb-3">
-              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                New Task
-              </h2>
+                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                  Initiate Operation
+                </h2>
             </CardHeader>
             <CardContent>
               <TaskForm userId={user.id} defaultMonth={currentMonth} />

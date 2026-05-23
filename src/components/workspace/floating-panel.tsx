@@ -2,10 +2,20 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWorkspaceState } from './workspace-state';
+import { SUBSYSTEM_IDENTITY } from '@/lib/constants/operational-language';
 
 interface Position {
   x: number;
   y: number;
+}
+
+function clampViewport(x: number, y: number, pw = 340, ph = 140): Position {
+  const mw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const mh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  return {
+    x: Math.max(0, Math.min(x, Math.max(0, mw - pw))),
+    y: Math.max(0, Math.min(y, Math.max(0, mh - ph))),
+  };
 }
 
 interface FloatingPanelProps {
@@ -30,11 +40,10 @@ export function FloatingPanel({
   const { state, updatePanelPosition, bringToFront, context } = useWorkspaceState();
   const panelState = state.panels.find(p => p.id === id);
   
-  const [localPosition, setLocalPosition] = useState<Position>(
-    panelState?.x !== undefined 
-      ? { x: panelState.x, y: panelState.y }
-      : initialPosition || { x: 0, y: 0 }
-  );
+  const initPos = panelState?.x !== undefined 
+    ? { x: panelState.x, y: panelState.y }
+    : initialPosition || { x: 0, y: 0 };
+  const [localPosition, setLocalPosition] = useState<Position>(clampViewport(initPos.x, initPos.y));
   const positionRef = useRef(localPosition);
   positionRef.current = localPosition;
 
@@ -48,6 +57,14 @@ export function FloatingPanel({
   const zIndex = panelState?.zIndex || 1;
 
   const { environmentTone } = context;
+
+  /* ─── Dynamic subsystem insignia ─── */
+  const subsystem = SUBSYSTEM_IDENTITY.find(s => s.label === id);
+  const displayGlyph = isFocused
+    ? (subsystem?.stateMarkers.focused || '◆')
+    : isActive
+      ? (subsystem?.stateMarkers.active || '◐')
+      : (subsystem?.stateMarkers.idle || '○');
 
   useEffect(() => {
     return () => { mountedRef.current = false; };
@@ -73,7 +90,7 @@ export function FloatingPanel({
     const newX = clientX - offsetRef.current.x;
     const newY = clientY - offsetRef.current.y;
     if (!isFinite(newX) || !isFinite(newY)) return;
-    setLocalPosition({ x: newX, y: newY });
+    setLocalPosition(clampViewport(newX, newY));
   }, []);
 
   const handleDragEnd = useCallback(() => {
@@ -178,37 +195,17 @@ export function FloatingPanel({
   const getShadowStyle = (): React.CSSProperties => {
     if (isDragging) {
       return {
-        boxShadow: '0 20px 60px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 20px 60px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4)',
       };
     }
     if (isHovered || isActive) {
       return {
-        boxShadow: '0 8px 24px -6px rgba(0,0,0,0.4), 0 20px 48px -12px rgba(0,0,0,0.3)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.035), 0 8px 24px -6px rgba(0,0,0,0.4), 0 20px 48px -12px rgba(0,0,0,0.3)',
       };
     }
     return {
-      boxShadow: '0 2px 8px -4px rgba(0,0,0,0.3), 0 8px 24px -8px rgba(0,0,0,0.2)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.025), 0 2px 8px -4px rgba(0,0,0,0.3), 0 8px 24px -8px rgba(0,0,0,0.2)',
     };
-  };
-
-  const getEdgeLightColor = () => {
-    if (isActive) {
-      switch (environmentTone) {
-        case 'critical': return 'from-red-500/8';
-        case 'tense': return 'from-amber-500/8';
-        case 'calm': return 'from-emerald-500/8';
-        default: return 'from-blue-400/8';
-      }
-    }
-    if (isHovered) {
-      switch (environmentTone) {
-        case 'critical': return 'from-red-500/5';
-        case 'tense': return 'from-amber-500/5';
-        case 'calm': return 'from-emerald-500/5';
-        default: return 'from-blue-400/5';
-      }
-    }
-    return 'from-transparent';
   };
 
   return (
@@ -219,7 +216,7 @@ export function FloatingPanel({
       className={`
         floating-panel
         absolute
-        bg-gradient-to-b from-zinc-950/95 to-zinc-950/90
+        bg-gradient-to-b from-zinc-950/90 to-zinc-950/85
         border
         rounded-lg
         overflow-hidden
@@ -240,17 +237,18 @@ export function FloatingPanel({
         ...getShadowStyle(),
       }}
     >
-      {/* Environmental light bleed overlay */}
-      <div className={`absolute inset-0 rounded-lg pointer-events-none bg-gradient-to-b ${getEdgeLightColor()} to-transparent transition-opacity duration-700`} />
-      {/* Panel surface texture */}
-      <div className="absolute inset-0 rounded-lg pointer-events-none opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)' }} />
+      {/* Static internal reflection */}
+      <div className="absolute inset-0 rounded-lg pointer-events-none" style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.015) 100%)',
+      }} />
+
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         className={`
           panel-header
           flex items-center gap-2
-          px-4 py-2.5
+          px-3 py-2
           border-b
           cursor-grab
           ${isDragging ? 'cursor-grabbing' : ''}
@@ -258,19 +256,21 @@ export function FloatingPanel({
           ${getHeaderStyle()}
         `}
       >
-        {icon && <span className="text-zinc-500 text-sm">{icon}</span>}
-        <span className={`font-mono text-[10px] uppercase tracking-wider flex-1 ${
+        {icon && (
+          <span className={`text-xs transition-all duration-300 ${
+            isFocused || isActive ? 'text-zinc-300' : 'text-zinc-600'
+          }`}>
+            {displayGlyph}
+          </span>
+        )}
+        <span className={`font-mono text-[10px] tracking-wider flex-1 ${
           isActive || isFocused ? 'text-zinc-300' : 'text-zinc-500'
         }`}>
           {title}
         </span>
-        <div className="flex items-center gap-1">
-          <span className={`w-1.5 h-1.5 rounded-full ${getIndicatorColor()} ${isActive ? 'animate-pulse' : ''}`} />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
-        </div>
+        <span className={`w-1.5 h-1.5 rounded-full ${getIndicatorColor()} ${isActive ? 'animate-pulse' : ''}`} />
       </div>
-      <div className="panel-content p-3.5">
+      <div className="panel-content p-3 relative z-[1]">
         {children}
       </div>
     </div>

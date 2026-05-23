@@ -54,6 +54,8 @@ export default async function WorkspacePage() {
       daysRemaining: roadmapProgress.daysRemaining,
       daysElapsed: roadmapProgress.daysElapsed,
     },
+    logs: logs || [],
+    ctfEntries: ctfEntries || [],
     logsCount: (logs || []).length,
     ctfCount: (ctfEntries || []).filter((e) => e.solved).length,
     tasksTotal: (tasks || []).length,
@@ -61,7 +63,7 @@ export default async function WorkspacePage() {
   };
   
   return (
-    <main className="w-full h-screen overflow-hidden">
+    <main className="w-full h-screen overflow-hidden animate-page-enter">
       <Workspace data={workspaceData} />
     </main>
   );

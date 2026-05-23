@@ -5,6 +5,8 @@ import { Card, CardHeader, CardContent, Button, Badge } from '@/components/ui';
 import { PILLARS } from '@/lib/constants';
 import { updateTaskStatus, deleteTask } from '@/lib/actions/tasks';
 import { generateTodayMission } from '@/lib/actions/mission';
+import { useAcknowledgment } from '@/components/shared/operational-acknowledgment';
+import { ACTION_ACKNOWLEDGMENTS } from '@/lib/constants/operational-rituals';
 import type { Task } from '@/types';
 
 interface TaskListProps {
@@ -17,6 +19,7 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
   const [, startTransition] = useTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const { acknowledge } = useAcknowledgment();
 
   const handleGenerateMission = () => {
     setGenerating(true);
@@ -26,10 +29,13 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
         if (result.success && result.tasks.length > 0) {
           setTasks(prev => [...result.tasks, ...prev]);
           onTasksGenerated?.(result.tasks);
+          const def = ACTION_ACKNOWLEDGMENTS.tasksGenerated;
+          if (def.message) acknowledge(def.message, def.weight);
         }
       } catch (err) {
         console.error('Error generating mission:', err);
-        alert(err instanceof Error ? err.message : 'Failed to generate mission');
+        const def = ACTION_ACKNOWLEDGMENTS.error;
+        if (def.message) acknowledge(def.message, def.weight);
       } finally {
         setGenerating(false);
       }
@@ -46,9 +52,15 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
             ? { ...t, status: newStatus, completed_at: newStatus === 'done' ? new Date().toISOString() : t.completed_at }
             : t
         ));
+        const actionKey = newStatus === 'in_progress' ? 'taskEngaged' : newStatus === 'done' ? 'taskResolved' : null;
+        if (actionKey) {
+          const def = ACTION_ACKNOWLEDGMENTS[actionKey];
+          if (def.message) acknowledge(def.message, def.weight);
+        }
       } catch (err) {
         console.error('Error updating task:', err);
-        alert(err instanceof Error ? err.message : 'Failed to update task');
+        const def = ACTION_ACKNOWLEDGMENTS.error;
+        if (def.message) acknowledge(def.message, def.weight);
       } finally {
         setProcessingId(null);
       }
@@ -65,7 +77,8 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
         setTasks(prev => prev.filter(t => t.id !== taskId));
       } catch (err) {
         console.error('Error deleting task:', err);
-        alert(err instanceof Error ? err.message : 'Failed to update task');
+        const def = ACTION_ACKNOWLEDGMENTS.error;
+        if (def.message) acknowledge(def.message, def.weight);
       } finally {
         setProcessingId(null);
       }
@@ -78,10 +91,10 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
   const abandonedTasks = useMemo(() => tasks.filter(t => t.status === 'abandoned'), [tasks]);
 
   const sections = [
-    { title: 'To Do', tasks: todoTasks, key: 'todo' },
-    { title: 'In Progress', tasks: inProgressTasks, key: 'in_progress' },
-    { title: 'Done', tasks: doneTasks, key: 'done' },
-    { title: 'Abandoned', tasks: abandonedTasks, key: 'abandoned' },
+    { title: 'Pending', tasks: todoTasks, key: 'todo' },
+    { title: 'Engaged', tasks: inProgressTasks, key: 'in_progress' },
+    { title: 'Resolved', tasks: doneTasks, key: 'done' },
+    { title: 'Archived', tasks: abandonedTasks, key: 'abandoned' },
   ].filter(s => s.tasks.length > 0);
 
   const generatedCount = tasks.filter(t => t.origin === 'generated').length;
@@ -91,7 +104,7 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-800/60">
         <div className="flex items-center gap-4">
-          <h2 className="font-mono text-base font-semibold text-zinc-200 uppercase tracking-wider">Tasks</h2>
+          <h2 className="font-mono text-base font-semibold text-zinc-200 uppercase tracking-wider">Active Operations</h2>
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm text-zinc-500">Generated: {generatedCount}</span>
             <span className="font-mono text-sm text-zinc-700">|</span>
@@ -104,14 +117,14 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
           onClick={handleGenerateMission}
           loading={generating}
         >
-          {generating ? 'Generating...' : "Generate Mission"}
+          {generating ? 'Tasking...' : "Generate Tasking"}
         </Button>
       </CardHeader>
       <CardContent className="px-5 py-5">
         {tasks.length === 0 ? (
           <div className="text-center py-12">
-            <p className="font-mono text-base text-zinc-500 mb-3">No tasks recorded</p>
-            <p className="font-mono text-sm text-zinc-600">Click &quot;Generate Mission&quot; to get started</p>
+            <p className="font-mono text-base text-zinc-500 mb-3">No active operations</p>
+            <p className="font-mono text-sm text-zinc-600">Generate tasking or submit a new operation</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -158,7 +171,7 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
     abandoned: null,
   };
 
-  const nextLabel = task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? 'Complete' : null;
+  const nextLabel = task.status === 'todo' ? 'Engage' : task.status === 'in_progress' ? 'Resolve' : null;
 
   return (
     <div className={`flex items-center gap-4 p-4 bg-zinc-800/50 border border-zinc-700/60 rounded-lg transition-all duration-150 hover:border-zinc-600/60 ${isProcessing ? 'opacity-50' : ''}`}>
@@ -177,7 +190,7 @@ function TaskItem({ task, onStatusChange, onDelete, isProcessing }: TaskItemProp
             M{task.month.toString().padStart(2, '0')}
           </span>
           <span className="font-mono text-sm font-medium" style={{ color: pillar.color }}>
-            +{task.xp_value} XP
+            +{task.xp_value}
           </span>
           {task.description && (
             <span className="font-mono text-sm text-zinc-500 truncate max-w-[250px] hidden sm:block">

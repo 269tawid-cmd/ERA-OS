@@ -40,8 +40,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.005) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
   background-size: 32px 32px;
   background-position: -1px -1px;
 }
@@ -378,4 +378,293 @@ input, select, textarea, button {
     transform: none;
     background-attachment: scroll;
   }
+}
+
+/* ═══════════════════════════════════════════════
+   Cinematic System — Shared Atmospheric Language
+   ═══════════════════════════════════════════════ */
+
+/* Tone variables — used across all pages for environmental consequence */
+/* Each tone maps to a psychological state, not just a color scheme */
+:root {
+  --tone-hue: 220;
+  --tone-sat: 15%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(60, 100, 200, 0.06);
+  --tone-barrel: rgba(0, 0, 0, 0.3);
+  --tone-blur: 0.8px;
+  --tone-contrast: 1;
+  --tone-brightness: 1;
+  --tone-noise: 0.02;
+}
+
+/* Normal — standard operations, neutral functional state */
+[data-tone="normal"] {
+  --tone-hue: 220;
+  --tone-sat: 15%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(60, 100, 200, 0.06);
+  --tone-blur: 0.8px;
+  --tone-contrast: 1;
+  --tone-brightness: 1;
+  --tone-noise: 0.02;
+}
+
+/* Calm — operational clarity, spacious, low cognitive load */
+[data-tone="calm"] {
+  --tone-hue: 160;
+  --tone-sat: 20%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(45, 200, 160, 0.05);
+  --tone-blur: 0.8px;
+  --tone-contrast: 1;
+  --tone-brightness: 1.02;
+  --tone-noise: 0.01;
+}
+
+/* Tense — compression, heightened awareness, narrowing focus */
+[data-tone="tense"] {
+  --tone-hue: 35;
+  --tone-sat: 25%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(200, 130, 30, 0.07);
+  --tone-blur: 0.6px;
+  --tone-contrast: 1.04;
+  --tone-brightness: 0.96;
+  --tone-noise: 0.03;
+}
+
+/* Critical — saturation risk, urgent, narrow operational window */
+[data-tone="critical"] {
+  --tone-hue: 0;
+  --tone-sat: 30%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(200, 40, 40, 0.08);
+  --tone-blur: 0.4px;
+  --tone-contrast: 1.06;
+  --tone-brightness: 0.94;
+  --tone-noise: 0.035;
+}
+
+/* Momentum — flow state, aligned execution, forward motion */
+[data-tone="momentum"] {
+  --tone-hue: 150;
+  --tone-sat: 25%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(40, 212, 150, 0.06);
+  --tone-blur: 0.8px;
+  --tone-contrast: 1;
+  --tone-brightness: 1.01;
+  --tone-noise: 0.015;
+}
+
+/* Fatigue/Overload — depletion, accumulated strain */
+[data-tone="fatigue"],
+[data-tone="overload"] {
+  --tone-hue: 30;
+  --tone-sat: 30%;
+  --tone-lum: 4%;
+  --tone-accent: rgba(200, 120, 30, 0.07);
+  --tone-blur: 0.5px;
+  --tone-contrast: 0.97;
+  --tone-brightness: 0.95;
+  --tone-noise: 0.04;
+}
+
+/* Shared atmospheric depth layer */
+.cinematic-atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -5;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 70%,
+      var(--tone-accent) 0%,
+      transparent 100%
+    ),
+    linear-gradient(
+      to bottom,
+      hsl(var(--tone-hue), var(--tone-sat), calc(var(--tone-lum) + 1%)) 0%,
+      hsl(var(--tone-hue), calc(var(--tone-sat) * 0.5), var(--tone-lum)) 40%,
+      hsl(var(--tone-hue), var(--tone-sat), calc(var(--tone-lum) - 1%)) 100%
+    );
+  filter: blur(var(--tone-blur)) contrast(var(--tone-contrast)) brightness(var(--tone-brightness));
+  transition: filter 2s ease-out;
+}
+
+/* Environmental noise overlay — texture increases with tension */
+.cinematic-atmosphere::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: var(--tone-noise);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  transition: opacity 2s ease-out;
+}
+
+/* Page enter animation — fires on route navigation */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-page-enter {
+  animation: page-enter 0.5s ease-out;
+}
+
+/* Shared terminal heading style */
+.terminal-heading {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.terminal-heading::before {
+  content: '▸';
+  font-size: 1.125rem;
+  line-height: 1;
+  color: rgb(239 68 68 / 0.8);
+}
+.terminal-heading::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 1.25em;
+  background: currentColor;
+  opacity: 0.3;
+  animation: terminal-blink 1s step-end infinite;
+}
+@keyframes terminal-blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0; }
+}
+
+/* Shared corner brackets */
+.corner-brackets {
+  position: absolute;
+  inset: 0.75rem;
+  pointer-events: none;
+}
+.corner-brackets::before,
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.corner-brackets::before {
+  top: 0;
+  left: 0;
+  border-left: 1px solid rgba(255 255 255 / 0.06);
+  border-top: 1px solid rgba(255 255 255 / 0.06);
+}
+.corner-brackets::after {
+  bottom: 0;
+  right: 0;
+  border-right: 1px solid rgba(255 255 255 / 0.06);
+  border-bottom: 1px solid rgba(255 255 255 / 0.06);
+}
+
+/* Boot sequence animations */
+@keyframes boot-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes boot-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes boot-slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes checkmark {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-boot-fade-in {
+  animation: boot-fade-in 0.4s ease-out forwards;
+}
+.animate-boot-fade-out {
+  animation: boot-fade-out 0.5s ease-out forwards;
+}
+.animate-boot-slide-up {
+  animation: boot-slide-up 0.35s ease-out forwards;
+}
+.animate-checkmark {
+  animation: checkmark 0.2s ease-out forwards;
+}
+
+/* ═══════════════════════════════════════════════
+   Emotional Pacing — Psychological Rhythm
+   ═══════════════════════════════════════════════ */
+
+/* Activates on page entry — a moment of silence before content */
+@keyframes emotional-silence {
+  0% { opacity: 0; }
+  30% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.animate-emotional-silence {
+  animation: emotional-silence 0.6s ease-out;
+}
+
+/* Subtle steady pulse — operational continuity felt, not seen */
+@keyframes continuity-pulse {
+  0%, 100% { opacity: 0.01; }
+  50% { opacity: 0.03; }
+}
+.animate-continuity-pulse {
+  animation: continuity-pulse 4s ease-in-out infinite;
+}
+
+/* Deployed-system presence — very slow, barely perceptible */
+@keyframes system-presence {
+  0%, 100% { opacity: 0.005; }
+  25% { opacity: 0.015; }
+  50% { opacity: 0.005; }
+  75% { opacity: 0.02; }
+  100% { opacity: 0.005; }
+}
+.system-presence {
+  animation: system-presence 30s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════
+   Operational Identity — Subsystem Markers
+   ═══════════════════════════════════════════════ */
+
+.subsystem-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: rgba(113, 113, 122, 0.5);
+}
+
+.subsystem-marker::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+/* State transition — brief flash when tone changes */
+@keyframes tone-transition {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+.tone-transitioning {
+  animation: tone-transition 0.8s ease-out;
 }

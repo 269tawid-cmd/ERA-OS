@@ -34,6 +34,8 @@ export interface WorkspaceData {
     daysRemaining: number;
     daysElapsed: number;
   };
+  logs?: any[];
+  ctfEntries?: any[];
   logsCount?: number;
   ctfCount?: number;
   tasksTotal?: number;
@@ -78,6 +80,7 @@ const defaultPanels: PanelState[] = [
   { id: 'mentor-subsystem', x: 40, y: 380, zIndex: 2, isOpen: true },
   { id: 'roadmap-status', x: 400, y: 80, zIndex: 3, isOpen: true },
   { id: 'system-telemetry', x: 400, y: 380, zIndex: 4, isOpen: true },
+  { id: 'ops-evidence', x: 40, y: 660, zIndex: 5, isOpen: true },
 ];
 
 const STORAGE_KEY = 'era-os-workspace-state';
@@ -117,6 +120,20 @@ const defaultMemory: OperationalMemory = {
   roadmapDriftHistory: 0,
   streakConsistency: 0,
   operationalCycles: 0,
+  pacingTransitions: [],
+  campaignCompletions: [],
+  campaignAbandonments: [],
+  overloadCycleCount: 0,
+  effectiveRecoveryCount: 0,
+  sustainableExecutionDays: 0,
+  firstOperationTimestamp: null,
+  lastCounterDay: 0,
+  pacingProfileDistribution: {},
+  toolUsageHistory: {},
+  techniqueHistory: {},
+  platformActivity: {},
+  unresolvedFindings: [],
+  writeupSubjects: [],
 };
 
 const defaultLifecycle: OperationalLifecycle = {
@@ -212,6 +229,49 @@ const defaultSimulation: SimulationContext = {
   },
 };
 
+function capOperationalMemory(memory: OperationalMemory): OperationalMemory {
+  const capped = { ...memory };
+
+  if (capped.toolUsageHistory) {
+    const sorted = Object.entries(capped.toolUsageHistory)
+      .sort(([, a], [, b]) => b - a);
+    capped.toolUsageHistory = Object.fromEntries(sorted.slice(0, 50));
+  }
+
+  if (capped.techniqueHistory) {
+    const sorted = Object.entries(capped.techniqueHistory)
+      .sort(([, a], [, b]) => b - a);
+    capped.techniqueHistory = Object.fromEntries(sorted.slice(0, 50));
+  }
+
+  if (capped.platformActivity) {
+    const entries = Object.entries(capped.platformActivity)
+      .sort(([, a], [, b]) => b.entryCount - a.entryCount);
+    capped.platformActivity = Object.fromEntries(entries.slice(0, 20));
+  }
+
+  if (capped.unresolvedFindings && capped.unresolvedFindings.length > 20) {
+    capped.unresolvedFindings = capped.unresolvedFindings.slice(-20);
+  }
+
+  if (capped.writeupSubjects && capped.writeupSubjects.length > 30) {
+    capped.writeupSubjects = capped.writeupSubjects.slice(-30);
+  }
+
+  if (capped.pacingTransitions && capped.pacingTransitions.length > 100) {
+    capped.pacingTransitions = capped.pacingTransitions.slice(-100);
+  }
+
+  capped.momentumPeriods = Math.min(365, capped.momentumPeriods || 0);
+  capped.recoveryPeriods = Math.min(365, capped.recoveryPeriods || 0);
+  capped.operationalCycles = Math.min(365, capped.operationalCycles || 0);
+  capped.overloadCycleCount = Math.min(365, capped.overloadCycleCount || 0);
+  capped.effectiveRecoveryCount = Math.min(365, capped.effectiveRecoveryCount || 0);
+  capped.sustainableExecutionDays = Math.min(365, capped.sustainableExecutionDays || 0);
+
+  return capped;
+}
+
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
 
 export function WorkspaceProvider({ 
@@ -273,12 +333,21 @@ export function WorkspaceProvider({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!state.bootComplete) return;
+
+    const memory = capOperationalMemory(state.memory);
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       panels: state.panels,
-      memory: state.memory,
+      memory,
     }));
   }, [state.panels, state.bootComplete, state.memory]);
+
+  /* Persist environment tone for cross-page cinematic atmosphere */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!state.bootComplete) return;
+    localStorage.setItem('era-os-environment-tone', state.context.environmentTone);
+  }, [state.context.environmentTone, state.bootComplete]);
 
   const updatePanelPosition = useCallback((id: string, x: number, y: number) => {
     setState(prev => ({
@@ -321,6 +390,7 @@ export function WorkspaceProvider({
       'mentor-subsystem': 'mentor',
       'roadmap-status': 'roadmap',
       'system-telemetry': 'telemetry',
+      'ops-evidence': 'evidence',
     };
     return state.activeFocus.primary === panelMap[panelId];
   }, [state.activeFocus]);

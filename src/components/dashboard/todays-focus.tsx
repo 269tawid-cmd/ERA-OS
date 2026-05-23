@@ -71,7 +71,7 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
     <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Today&apos;s Focus</h3>
+          <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Primary Objective</h3>
           <span className="font-mono text-xs text-zinc-400">{recommendations.length} tasks</span>
         </div>
       </CardHeader>
@@ -79,7 +79,7 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
         {recommendations.length === 0 ? (
           <div className="text-center py-6">
             <p className="font-mono text-sm text-zinc-400 mb-1">All caught up</p>
-            <p className="font-mono text-xs text-zinc-500">Click &quot;Generate Mission&quot; to get started</p>
+            <p className="font-mono text-xs text-zinc-500">Initiate a task or generate automated tasking</p>
           </div>
         ) : (
           recommendations.map((rec, i) => (
@@ -94,7 +94,7 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
                 </div>
                 {rec.priority === 'high' && (
                   <span className="font-mono text-xs px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded flex-shrink-0">
-                    HIGH
+                    PRIORITY
                   </span>
                 )}
               </div>

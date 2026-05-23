@@ -26,10 +26,10 @@ export function ProductivitySummary({ tasks, streakCurrent }: ProductivitySummar
   const overdueRatio = total > 0 ? Math.round((abandoned / total) * 100) : 0;
 
   const statusData: StatusData[] = [
-    { label: 'Done', value: done, color: '#22c55e' },
-    { label: 'In Progress', value: inProgress, color: '#3b82f6' },
-    { label: 'To Do', value: todo, color: '#52525b' },
-    { label: 'Abandoned', value: abandoned, color: '#ef4444' },
+    { label: 'Resolved', value: done, color: '#22c55e' },
+    { label: 'Engaged', value: inProgress, color: '#3b82f6' },
+    { label: 'Pending', value: todo, color: '#52525b' },
+    { label: 'Archived', value: abandoned, color: '#ef4444' },
   ].filter((d) => d.value > 0);
 
   const noData = statusData.length === 0;

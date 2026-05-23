@@ -31,7 +31,7 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
-            Pillar XP Distribution
+            Domain Value Distribution
           </span>
           <span className="font-mono text-xs text-zinc-400">
             {data.reduce((s, d) => s + d.xp, 0)} total
@@ -63,7 +63,7 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
                   color: '#e4e4e7',
                 }}
                 labelStyle={{ color: '#a1a1aa' }}
-                formatter={(value: unknown) => [`${value} XP`, 'XP']}
+                formatter={(value: unknown) => [`${value}`, 'DV']}
               />
               <Bar dataKey="xp" radius={[3, 3, 0, 0]}>
                 {data.map((entry) => (

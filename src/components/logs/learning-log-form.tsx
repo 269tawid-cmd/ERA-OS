@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button, Select } from '@/components/ui';
 import { createLog } from '@/lib/actions/logs';
 import { PILLAR_ORDER } from '@/lib/constants';
+import { useAcknowledgment } from '@/components/shared/operational-acknowledgment';
+import { ACTION_ACKNOWLEDGMENTS } from '@/lib/constants/operational-rituals';
 import type { Pillar } from '@/types';
 
 const MAX_CHARS = 500;
@@ -13,10 +15,10 @@ export function LearningLogForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [content, setContent] = useState('');
   const [pillar, setPillar] = useState<Pillar>('HACK');
   const [isWin, setIsWin] = useState(false);
+  const { acknowledge } = useAcknowledgment();
 
   const charCount = content.length;
   const isOverLimit = charCount > MAX_CHARS;
@@ -35,10 +37,10 @@ export function LearningLogForm() {
       });
       setContent('');
       setIsWin(false);
-      setSuccess(true);
-      router.refresh();
 
-      setTimeout(() => setSuccess(false), 3000);
+      const def = ACTION_ACKNOWLEDGMENTS.logSaved;
+      if (def.message) acknowledge(def.message, def.weight);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -51,12 +53,6 @@ export function LearningLogForm() {
       {error && (
         <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-lg">
           <p className="font-mono text-sm text-red-400">{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-lg">
-          <p className="font-mono text-sm text-emerald-400">Log saved successfully</p>
         </div>
       )}
 

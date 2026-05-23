@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Input, Select, Button } from '@/components/ui';
 import { createTaskSchema } from '@/lib/validations/task';
 import { PILLAR_ORDER, PRIORITIES, XP_VALUES } from '@/lib/constants';
+import { useAcknowledgment } from '@/components/shared/operational-acknowledgment';
+import { ACTION_ACKNOWLEDGMENTS } from '@/lib/constants/operational-rituals';
 import type { Pillar, Priority } from '@/types';
 import type { UserProgressRow } from '@/lib/supabase/database.types';
 
@@ -18,17 +20,16 @@ export function TaskForm({ userId, defaultMonth = 1 }: TaskFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [pillar, setPillar] = useState<Pillar>('HACK');
   const [month, setMonth] = useState(defaultMonth.toString());
   const [priority, setPriority] = useState<Priority>('medium');
+  const { acknowledge } = useAcknowledgment();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
 
     const parsed = createTaskSchema.safeParse({
       title,
@@ -87,11 +88,10 @@ export function TaskForm({ userId, defaultMonth = 1 }: TaskFormProps) {
       setPillar('HACK');
       setMonth(defaultMonth.toString());
       setPriority('medium');
-      setSuccess(true);
 
+      const def = ACTION_ACKNOWLEDGMENTS.taskCreated;
+      if (def.message) acknowledge(def.message, def.weight);
       router.refresh();
-
-      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error('Error creating task:', err);
       setError('Failed to create task. Please try again.');
@@ -105,12 +105,6 @@ export function TaskForm({ userId, defaultMonth = 1 }: TaskFormProps) {
       {error && (
         <div className="p-4 bg-red-500/15 border border-red-500/40 rounded-lg">
           <p className="font-mono text-sm text-red-400">{error}</p>
-        </div>
-      )}
-
-      {success && (
-        <div className="p-4 bg-emerald-500/15 border border-emerald-500/40 rounded-lg">
-          <p className="font-mono text-sm text-emerald-400">Task created successfully</p>
         </div>
       )}
 
@@ -155,14 +149,14 @@ export function TaskForm({ userId, defaultMonth = 1 }: TaskFormProps) {
           onChange={(e) => setPriority(e.target.value as Priority)}
           options={Object.entries(PRIORITIES).map(([value, { label }]) => ({
             value,
-            label: `${label} (+${XP_VALUES[value as Priority]} XP)`,
+            label: `${label} (${XP_VALUES[value as Priority]} pts)`,
           }))}
         />
       </div>
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={loading} loading={loading} size="lg">
-          Create Task
+          Initiate Operation
         </Button>
       </div>
     </form>

@@ -39,7 +39,7 @@ export function MonthlyProgressGrid({ currentMonth, tasks }: MonthlyProgressGrid
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest">
-            Year 1 Roadmap Progress
+            Cycle 1 Phase Progress
           </span>
           <span className="font-mono text-[10px] text-zinc-700">
             {completedMonths}/{activeMonths} completed
@@ -103,11 +103,11 @@ export function MonthlyProgressGrid({ currentMonth, tasks }: MonthlyProgressGrid
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm bg-zinc-800/60 border border-zinc-700/40" />
-            <span className="font-mono text-[9px] text-zinc-600">In Progress</span>
+            <span className="font-mono text-[9px] text-zinc-600">Active</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-sm bg-zinc-800/30 border border-zinc-800/40" />
-            <span className="font-mono text-[9px] text-zinc-600">Empty</span>
+            <span className="font-mono text-[9px] text-zinc-600">No Data</span>
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
             <div className="w-2 h-2 rounded-sm ring-1 ring-red-500/50 bg-zinc-800/60" />

@@ -28,7 +28,7 @@ export function QuickStats({
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
-          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Current</p>
+          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Phase</p>
           <p className="font-mono text-base sm:text-lg font-semibold text-zinc-100 truncate">
             M{currentMonth.toString().padStart(2, '0')}: {monthTitle}
           </p>
@@ -38,13 +38,13 @@ export function QuickStats({
               style={{ width: `${progress.percentage}%` }}
             />
           </div>
-          <p className="font-mono text-sm text-zinc-400 mt-3">{progress.percentage}% year</p>
+          <p className="font-mono text-sm text-zinc-400 mt-3">{progress.percentage}% cycle</p>
         </CardContent>
       </Card>
 
       <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
-          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Streak</p>
+          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Continuity</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
             {streakCurrent}
             <span className="text-base font-normal text-zinc-400 ml-2">days</span>
@@ -53,15 +53,15 @@ export function QuickStats({
             streakCurrent === 0 ? 'text-zinc-600' :
             streakCurrent >= 7 ? 'text-amber-400' : 'text-zinc-400'
           }`}>
-            {streakCurrent === 0 ? 'Start today' :
-             streakCurrent >= 7 ? 'On fire' : 'Building'}
+            {streakCurrent === 0 ? 'Awaiting initiation' :
+             streakCurrent >= 7 ? 'Sustained' : 'Establishing'}
           </p>
         </CardContent>
       </Card>
 
       <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
-          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Tasks</p>
+          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Operations</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
             {completedTasks}
             <span className="text-base font-normal text-zinc-400">/{totalTasks}</span>
@@ -72,13 +72,13 @@ export function QuickStats({
               style={{ width: `${taskCompletionRate}%` }}
             />
           </div>
-          <p className="font-mono text-sm text-zinc-400 mt-3">{taskCompletionRate}% done</p>
+          <p className="font-mono text-sm text-zinc-400 mt-3">{taskCompletionRate}% resolved</p>
         </CardContent>
       </Card>
 
       <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
         <CardContent className="py-5 px-5">
-          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-3">Pillar XP</p>
+          <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-3">Domain Value</p>
           <div className="space-y-2.5">
             {PILLAR_ORDER.map((key) => {
               const pillar = PILLARS[key];

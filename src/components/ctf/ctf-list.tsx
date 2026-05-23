@@ -59,7 +59,7 @@ export function CTFList({ entries: initialEntries }: CTFListProps) {
           <span className="font-mono text-sm text-emerald-400">{solvedCount}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-sm text-zinc-400">HACK XP:</span>
+          <span className="font-mono text-sm text-zinc-400">HACK Value:</span>
           <span className="font-mono text-sm text-red-400">+{totalXP}</span>
         </div>
       </div>

@@ -19,7 +19,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-red-500 text-xs">◈</span>
-              <span className="font-mono text-xs text-zinc-400 uppercase tracking-wider">Current Phase</span>
+              <span className="font-mono text-xs text-zinc-400 uppercase tracking-wider">Active Phase</span>
             </div>
             <span className="font-mono text-lg px-3 py-1.5 bg-zinc-900/60 text-zinc-200 rounded border border-zinc-700/40 font-semibold">
               M{month.toString().padStart(2, '0')}
@@ -27,7 +27,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
           </div>
           <div className="text-right">
             <p className="font-mono text-3xl font-bold text-zinc-100">{percentage}%</p>
-            <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">year progress</p>
+            <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">cycle progress</p>
           </div>
         </div>
 
