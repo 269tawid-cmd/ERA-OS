@@ -5,13 +5,12 @@ import { redirect } from 'next/navigation';
 import { getMonthData, getRoadmapProgress } from '@/lib/roadmap';
 import {
   QuickStats,
-  TaskList,
-  TaskForm,
   MonthCard,
   PillarProgress,
   DashboardInsights,
   TodaysFocus,
 } from '@/components/dashboard';
+import { OperationsList } from '@/components/operations';
 import { MentorPanel } from '@/components/mentor';
 import { XPBarChart, MonthlyProgressGrid, ProductivitySummary } from '@/components/analytics';
 import { LearningLogForm, LearningTimeline } from '@/components/logs';
@@ -256,23 +255,9 @@ export default async function Dashboard() {
           </Card>
         </div>
 
-        {/* ─── Task Form ─── */}
+        {/* ─── Operations ─── */}
         <div className="mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                  Initiate Operation
-                </h2>
-            </CardHeader>
-            <CardContent>
-              <TaskForm userId={user.id} defaultMonth={currentMonth} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ─── Task List ─── */}
-        <div className="mb-8">
-          <TaskList tasks={taskList} />
+          <OperationsList tasks={taskList} />
         </div>
       </main>
     </div>
