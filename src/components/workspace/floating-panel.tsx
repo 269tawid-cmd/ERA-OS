@@ -150,63 +150,55 @@ export function FloatingPanel({
 
   if (panelState?.isOpen === false) return null;
 
-  const getBorderColor = () => {
-    if (isActive) {
-      switch (environmentTone) {
-        case 'critical': return 'border-red-600/60';
-        case 'tense': return 'border-amber-600/50';
-        case 'calm': return 'border-emerald-600/50';
-        default: return 'border-zinc-600/60';
-      }
-    }
-    if (isFocused) {
-      return 'border-zinc-700/80';
-    }
-    return 'border-zinc-800/60';
+  const getToneKey = () => {
+    if (isActive || isFocused) return environmentTone;
+    return 'default';
   };
 
-  const getHeaderStyle = () => {
-    if (isActive) {
-      switch (environmentTone) {
-        case 'critical': return 'bg-red-950/30 border-red-900/30';
-        case 'tense': return 'bg-amber-950/20 border-amber-900/30';
-        case 'calm': return 'bg-emerald-950/20 border-emerald-900/30';
-        default: return 'bg-zinc-900/60 border-zinc-800/40';
-      }
-    }
-    if (isFocused) {
-      return 'bg-zinc-900/60 border-zinc-700/40';
-    }
-    return 'hover:bg-zinc-900/50 border-zinc-800/40';
-  };
+  const getEdgeGlow = (): React.CSSProperties => {
+    const tone = environmentTone;
+    const active = isActive || isFocused;
+    const color = active
+      ? tone === 'critical' ? 'rgba(220,50,50,0.15)' :
+        tone === 'tense' ? 'rgba(200,120,30,0.12)' :
+        tone === 'calm' ? 'rgba(50,180,120,0.1)' :
+        'rgba(100,120,160,0.1)'
+      : 'rgba(100,120,160,0.04)';
+    const dragColor = tone === 'critical' ? 'rgba(220,50,50,0.2)' :
+      tone === 'tense' ? 'rgba(200,120,30,0.18)' :
+      tone === 'calm' ? 'rgba(50,180,120,0.15)' :
+      'rgba(100,120,160,0.15)';
 
-  const getIndicatorColor = () => {
-    if (isActive) {
-      switch (environmentTone) {
-        case 'critical': return 'bg-red-500';
-        case 'tense': return 'bg-amber-500';
-        case 'calm': return 'bg-emerald-500';
-        default: return 'bg-zinc-400';
-      }
-    }
-    return 'bg-zinc-600';
-  };
-
-  const getShadowStyle = (): React.CSSProperties => {
     if (isDragging) {
       return {
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03), 0 20px 60px -12px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.4)',
+        boxShadow: `0 0 20px ${dragColor}, 0 0 60px ${dragColor.replace('0.15', '0.06')}`, 
       };
     }
-    if (isHovered || isActive) {
+    if (active) {
       return {
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.035), 0 8px 24px -6px rgba(0,0,0,0.4), 0 20px 48px -12px rgba(0,0,0,0.3)',
+        boxShadow: `0 0 12px ${color}, 0 0 40px ${color.replace('0.12', '0.04')}`,
       };
     }
     return {
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.025), 0 2px 8px -4px rgba(0,0,0,0.3), 0 8px 24px -8px rgba(0,0,0,0.2)',
+      boxShadow: `0 0 8px ${color}`,
     };
   };
+
+  const getGlassBg = () => {
+    if (isDragging) return 'from-zinc-950/65 to-zinc-950/60';
+    if (isActive) {
+      switch (environmentTone) {
+        case 'critical': return 'from-red-950/35 to-zinc-950/30';
+        case 'tense': return 'from-amber-950/30 to-zinc-950/25';
+        case 'calm': return 'from-emerald-950/25 to-zinc-950/20';
+        default: return 'from-zinc-950/45 to-zinc-950/40';
+      }
+    }
+    return 'from-zinc-950/40 to-zinc-950/35';
+  };
+
+  const edgeGlow = getEdgeGlow();
+  const glassBg = getGlassBg();
 
   return (
     <div
@@ -216,16 +208,13 @@ export function FloatingPanel({
       className={`
         floating-panel
         absolute
-        bg-gradient-to-b from-zinc-950/90 to-zinc-950/85
-        border
-        rounded-lg
+        rounded-sm
         overflow-hidden
         select-none
         will-change-transform
-        ${isDragging 
-          ? 'z-[100] transition-shadow duration-100' 
-          : `transition-shadow duration-300 ${getBorderColor()}`
-        }
+        backdrop-blur-[12px]
+        bg-gradient-to-b ${glassBg}
+        ${isDragging ? 'z-[100]' : ''}
         ${className}
       `}
       style={{
@@ -234,12 +223,17 @@ export function FloatingPanel({
         minWidth: '320px',
         maxWidth: '420px',
         zIndex,
-        ...getShadowStyle(),
+        ...edgeGlow,
       }}
     >
-      {/* Static internal reflection */}
-      <div className="absolute inset-0 rounded-lg pointer-events-none" style={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.015) 100%)',
+      {/* Environmental reflection overlay */}
+      <div className="absolute inset-0 rounded-sm pointer-events-none" style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 45%, transparent 65%, rgba(255,255,255,0.015) 100%)',
+        mixBlendMode: 'overlay',
+      }} />
+      {/* Subtle edge light */}
+      <div className="absolute inset-0 rounded-sm pointer-events-none" style={{
+        border: '1px solid rgba(255,255,255,0.04)',
       }} />
 
       <div
@@ -249,15 +243,13 @@ export function FloatingPanel({
           panel-header
           flex items-center gap-2
           px-3 py-2
-          border-b
+          border-b border-white/[0.04]
           cursor-grab
           ${isDragging ? 'cursor-grabbing' : ''}
-          transition-colors duration-150
-          ${getHeaderStyle()}
         `}
       >
         {icon && (
-          <span className={`text-xs transition-all duration-300 ${
+          <span className={`text-xs ${
             isFocused || isActive ? 'text-zinc-300' : 'text-zinc-600'
           }`}>
             {displayGlyph}
@@ -268,7 +260,7 @@ export function FloatingPanel({
         }`}>
           {title}
         </span>
-        <span className={`w-1.5 h-1.5 rounded-full ${getIndicatorColor()} ${isActive ? 'animate-pulse' : ''}`} />
+        <div className={`w-[3px] h-[3px] ${isActive ? 'bg-zinc-400' : 'bg-zinc-700'}`} />
       </div>
       <div className="panel-content p-3 relative z-[1]">
         {children}

@@ -310,20 +310,12 @@ export function MentorSubsystem({
       {/* AI Mentor Status with Context */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className={`absolute inline-flex h-full w-full rounded-full ${
-              mentorTone === 'calm' ? 'bg-emerald-500 opacity-50' :
-              mentorTone === 'alert' ? 'bg-red-500 opacity-75' :
-              mentorTone === 'warning' ? 'bg-amber-500 opacity-75' :
-              'bg-amber-400 opacity-75'
-            } animate-ping`}></span>
-            <span className={`relative inline-flex rounded-full h-2 w-2 ${
-              mentorTone === 'calm' ? 'bg-emerald-500' :
-              mentorTone === 'alert' ? 'bg-red-500' :
-              mentorTone === 'warning' ? 'bg-amber-500' :
-              'bg-amber-500'
-            }`}></span>
-          </span>
+          <span className={`inline-flex rounded-full h-1.5 w-1.5 ${
+            mentorTone === 'calm' ? 'bg-emerald-500' :
+            mentorTone === 'alert' ? 'bg-red-500' :
+            mentorTone === 'warning' ? 'bg-amber-500' :
+            'bg-amber-500'
+          }`} />
           <span className={`font-mono text-[10px] uppercase ${
             mentorTone === 'calm' ? 'text-emerald-400' :
             mentorTone === 'alert' ? 'text-red-400' :
@@ -339,7 +331,7 @@ export function MentorSubsystem({
               rhythmState === 'momentum' ? 'text-emerald-500/60' :
               rhythmState === 'fatigue' || rhythmState === 'overload' ? 'text-amber-500/60' :
               'text-red-500/60'
-            } animate-pulse uppercase`}>
+            } uppercase`}>
               {rhythmState}
             </span>
           )}
@@ -395,7 +387,7 @@ export function MentorSubsystem({
             </>
           )}
         </div>
-        <p className="font-mono text-xs text-zinc-400 leading-relaxed animate-fade-in">
+        <p className="font-mono text-xs text-zinc-400 leading-relaxed">
           {insight}
         </p>
       </div>

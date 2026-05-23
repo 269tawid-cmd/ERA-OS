@@ -155,9 +155,6 @@ export function SystemTelemetry({
       <div className="pt-2 border-t border-zinc-800/20">
         <div className="flex items-center gap-2 text-[10px] font-mono">
           <span className={`relative flex h-1.5 w-1.5`}>
-            <span className={`absolute inline-flex h-full w-full rounded-full ${status.glow} opacity-50 ${
-              operationalPressure === 'critical' ? 'animate-ping' : ''
-            }`}></span>
             <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${status.glow}`}></span>
           </span>
           <span className="text-zinc-500">ERA-OS</span>

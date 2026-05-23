@@ -92,11 +92,12 @@ function WorkspaceContent() {
     }));
   }, []);
 
-  /* ─── Cinematic Parallax Camera — Inertia, Overshoot, Breathing ─── */
+  /* ─── Cinematic Camera — Weighted Inertia + Subtle Perspective ─── */
   const distantRef = useRef<HTMLDivElement>(null);
   const ambientRef = useRef<HTMLDivElement>(null);
   const lightBeamRef = useRef<HTMLDivElement>(null);
   const atmosphereRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const cameraPos = useRef({ x: 0, y: 0 });
   const targetPos = useRef({ x: 0, y: 0 });
   const velocity = useRef({ x: 0, y: 0 });
@@ -104,27 +105,16 @@ function WorkspaceContent() {
   const mountedRef = useRef(false);
   const reducedMotionRef = useRef(false);
 
-  /* ─── Environmental life modulation refs ─── */
-  const toneRef = useRef(environmentTone);
-  const envPhase = useRef(0);
-
-  useEffect(() => { toneRef.current = environmentTone; }, [environmentTone]);
-
   useEffect(() => {
     mountedRef.current = true;
     reducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const lowEndDevice = typeof navigator !== 'undefined' && navigator.hardwareConcurrency <= 4;
     const skipCamera = reducedMotionRef.current || lowEndDevice;
 
-    const layers = [
-      { ref: distantRef, speed: 0.12 },
-      { ref: atmosphereRef, speed: 0.25 },
-      { ref: ambientRef, speed: 0.5 },
-      { ref: lightBeamRef, speed: 1.0 },
-    ];
+    const layerSpeeds = [0.10, 0.22, 0.40, 0.70];
+    const layerRefs = [distantRef, atmosphereRef, ambientRef, lightBeamRef];
 
     let idlePhase = 0;
-    let prevTarget = { x: 0, y: 0 };
     let paused = false;
 
     const onMouseMove = (e: MouseEvent) => {
@@ -140,9 +130,6 @@ function WorkspaceContent() {
 
     const onVisibilityChange = () => {
       paused = document.hidden;
-      if (document.hidden) {
-        envPhase.current = 0;
-      }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
 
@@ -152,51 +139,36 @@ function WorkspaceContent() {
         return;
       }
 
-      if (!paused) {
-        /* ── Cinematic atmosphere breathing ── */
-        const tone = toneRef.current;
-        const pace = tone === 'critical' ? 1.8 : tone === 'tense' ? 1.3 : tone === 'calm' ? 0.7 : 1.0;
-        envPhase.current += 0.0005 * pace;
-        const hp = envPhase.current;
-        const sp = envPhase.current;
+      if (!paused && !skipCamera) {
+        const pullX = (targetPos.current.x - cameraPos.current.x) * 0.06;
+        const pullY = (targetPos.current.y - cameraPos.current.y) * 0.06;
+        velocity.current.x += (pullX - velocity.current.x) * 0.07;
+        velocity.current.y += (pullY - velocity.current.y) * 0.07;
+        velocity.current.x *= 0.92;
+        velocity.current.y *= 0.92;
+        cameraPos.current.x += velocity.current.x;
+        cameraPos.current.y += velocity.current.y;
 
-        if (atmosphereRef.current) {
-          const haze = 0.65 + Math.sin(hp * 0.3) * 0.08;
-          atmosphereRef.current.style.opacity = String(Math.max(0.35, Math.min(1, haze)));
+        idlePhase += 0.002;
+        const driftX = Math.sin(idlePhase * 0.3) * 0.04;
+        const driftY = Math.cos(idlePhase * 0.2) * 0.03;
+
+        const mx = Math.max(-1, Math.min(1, isFinite(cameraPos.current.x) ? cameraPos.current.x : 0));
+        const my = Math.max(-1, Math.min(1, isFinite(cameraPos.current.y) ? cameraPos.current.y : 0));
+
+        const tx = mx + driftX;
+        const ty = my + driftY;
+
+        /* ── Parallax layer movement ── */
+        for (let i = 0; i < layerRefs.length; i++) {
+          const ref = layerRefs[i];
+          if (!ref.current) continue;
+          ref.current.style.transform = `translate3d(${tx * layerSpeeds[i]}px, ${ty * layerSpeeds[i]}px, 0)`;
         }
-        if (lightBeamRef.current) {
-          const shimmer = 0.7 + Math.sin(sp * 0.4) * 0.08;
-          lightBeamRef.current.style.opacity = String(Math.max(0.35, Math.min(1, shimmer)));
-        }
 
-        /* ── Camera movement ── */
-        if (!skipCamera) {
-          prevTarget = { ...targetPos.current };
-
-          const pullX = (targetPos.current.x - cameraPos.current.x) * 0.06;
-          const pullY = (targetPos.current.y - cameraPos.current.y) * 0.06;
-          velocity.current.x += (pullX - velocity.current.x) * 0.07;
-          velocity.current.y += (pullY - velocity.current.y) * 0.07;
-          velocity.current.x *= 0.92;
-          velocity.current.y *= 0.92;
-          cameraPos.current.x += velocity.current.x;
-          cameraPos.current.y += velocity.current.y;
-
-          const mx = Math.max(-1, Math.min(1, isFinite(cameraPos.current.x) ? cameraPos.current.x : 0));
-          const my = Math.max(-1, Math.min(1, isFinite(cameraPos.current.y) ? cameraPos.current.y : 0));
-
-          idlePhase += 0.002;
-          const breathX = Math.sin(idlePhase * 0.5) * 0.08;
-          const breathY = Math.cos(idlePhase * 0.35) * 0.06;
-          const totalX = mx + breathX;
-          const totalY = my + breathY;
-
-          for (let i = 0; i < layers.length; i++) {
-            const layer = layers[i];
-            if (!layer.ref.current) continue;
-            layer.ref.current.style.transform =
-              `translate3d(${totalX * layer.speed}px, ${totalY * layer.speed}px, 0)`;
-          }
+        /* ── Subtle perspective rotation on scene ── */
+        if (sceneRef.current) {
+          sceneRef.current.style.transform = `rotateX(${ty * 0.3}deg) rotateY(${tx * -0.5}deg)`;
         }
       }
 
@@ -230,69 +202,41 @@ function WorkspaceContent() {
     return <BootSequence onComplete={() => setShowBoot(false)} isReturnVisit={hasVisitedBefore} />;
   }
 
-  const getEnvironmentClass = () => {
+  const getSceneTone = () => {
     if (rhythmState === 'momentum') {
-      return 'bg-gradient-to-b from-emerald-950/15 via-zinc-950 to-zinc-950';
+      return { ground: 'rgba(5,20,15,0.12)', beam: 'rgba(50,180,120,0.04)', tint: 'rgba(15,30,20,0.08)' };
     }
     if (rhythmState === 'overload' || rhythmState === 'fatigue') {
-      return 'bg-gradient-to-b from-amber-950/15 via-zinc-950 to-zinc-950';
+      return { ground: 'rgba(25,15,5,0.15)', beam: 'rgba(200,100,30,0.05)', tint: 'rgba(30,20,10,0.10)' };
     }
     switch (environmentTone) {
       case 'critical':
-        return 'bg-gradient-to-b from-red-950/20 via-zinc-950 to-zinc-950';
+        return { ground: 'rgba(30,5,5,0.18)', beam: 'rgba(220,40,40,0.06)', tint: 'rgba(35,10,10,0.12)' };
       case 'tense':
-        return 'bg-gradient-to-b from-amber-950/10 via-zinc-950 to-zinc-950';
+        return { ground: 'rgba(25,15,5,0.12)', beam: 'rgba(200,100,30,0.04)', tint: 'rgba(30,20,10,0.08)' };
       case 'calm':
-        return 'bg-gradient-to-b from-emerald-950/10 via-zinc-950 to-zinc-950';
+        return { ground: 'rgba(5,20,15,0.08)', beam: 'rgba(50,180,120,0.03)', tint: 'rgba(15,30,20,0.05)' };
       default:
-        return 'bg-gradient-to-b from-zinc-950 via-zinc-900/40 to-zinc-950';
+        return { ground: 'rgba(10,12,18,0.08)', beam: 'rgba(60,80,120,0.03)', tint: 'rgba(10,12,18,0.05)' };
     }
   };
+  const sceneTone = getSceneTone();
 
   const getSyncColor = () => {
-    if (rhythmState === 'momentum') {
-      return {
-        bracket: 'border-emerald-700/40',
-        indicator: 'bg-emerald-500',
-        glow: 'shadow-emerald-500/10',
-      };
-    }
-    if (rhythmState === 'overload' || rhythmState === 'fatigue') {
-      return {
-        bracket: 'border-amber-700/40',
-        indicator: 'bg-amber-500',
-        glow: 'shadow-amber-500/10',
-      };
-    }
+    if (rhythmState === 'momentum') return 'border-emerald-700/40';
+    if (rhythmState === 'overload' || rhythmState === 'fatigue') return 'border-amber-700/40';
     switch (environmentTone) {
-      case 'critical':
-        return {
-          bracket: 'border-red-700/40',
-          indicator: 'bg-red-500',
-          glow: 'shadow-red-500/10',
-        };
-      case 'tense':
-        return {
-          bracket: 'border-amber-700/40',
-          indicator: 'bg-amber-500',
-          glow: 'shadow-amber-500/10',
-        };
-      case 'calm':
-        return {
-          bracket: 'border-emerald-700/40',
-          indicator: 'bg-emerald-500',
-          glow: 'shadow-emerald-500/10',
-        };
-      default:
-        return {
-          bracket: 'border-zinc-700/30',
-          indicator: 'bg-zinc-500',
-          glow: 'shadow-zinc-500/10',
-        };
+      case 'critical': return 'border-red-700/40';
+      case 'tense': return 'border-amber-700/40';
+      case 'calm': return 'border-emerald-700/40';
+      default: return 'border-zinc-700/30';
     }
   };
-
-  const syncColors = getSyncColor();
+  const bracketColor = getSyncColor();
+  const dotColor = environmentTone === 'critical' ? 'bg-red-500/80' :
+    environmentTone === 'tense' ? 'bg-amber-500/80' :
+    environmentTone === 'calm' ? 'bg-emerald-500/80' :
+    'bg-zinc-500/80';
 
   const getPressureIndicator = () => {
     switch (operationalPressure) {
@@ -310,128 +254,249 @@ function WorkspaceContent() {
   const pressure = getPressureIndicator();
 
   return (
-    <div className={`workspace-environment relative w-full h-screen overflow-hidden ${getEnvironmentClass()}`}>
-      {/* Cinematic Depth & Lighting System (error-isolated) */}
+    <div className="workspace-environment relative w-full h-screen overflow-hidden bg-[#020208]">
+      {/* Cinematic Scene — error-isolated */}
       <CinematicErrorBoundary>
-      {/* Layer 0 — Distant atmosphere, city silhouette */}
+      {/* Layer 0 — Deep space / night sky with stars */}
       <div
         ref={distantRef}
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           willChange: 'transform',
-          filter: 'blur(6px)',
-          backgroundImage: `
-            linear-gradient(to bottom, rgba(2,2,8,0.7) 0%, rgba(4,4,14,0.35) 40%, transparent 60%),
-            radial-gradient(ellipse 60% 8% at 50% 72%, rgba(20,45,90,0.1) 0%, transparent 100%),
-            repeating-linear-gradient(90deg,
-              transparent 0px, transparent 3px,
-              rgba(10,15,30,0.06) 3px, rgba(10,15,30,0.06) 5px,
-              transparent 5px, transparent 9px,
-              rgba(7,11,24,0.04) 9px, rgba(7,11,24,0.04) 13px,
-              transparent 13px, transparent 17px,
-              rgba(9,14,28,0.05) 17px, rgba(9,14,28,0.05) 19px,
-              transparent 19px, transparent 22px,
-              rgba(6,10,20,0.04) 22px, rgba(6,10,20,0.04) 24px,
-              transparent 24px, transparent 29px,
-              rgba(11,17,34,0.05) 29px, rgba(11,17,34,0.05) 31px,
-              transparent 31px, transparent 35px
-            ),
-            repeating-linear-gradient(90deg,
-              transparent 0px, transparent 14px,
-              rgba(180,200,255,0.025) 14px, rgba(180,200,255,0.025) 15px,
-              transparent 15px, transparent 28px,
-              rgba(180,200,255,0.015) 28px, rgba(180,200,255,0.015) 29px,
-              transparent 29px, transparent 42px,
-              rgba(180,200,255,0.03) 42px, rgba(180,200,255,0.03) 43px,
-              transparent 43px, transparent 56px,
-              rgba(180,200,255,0.02) 56px, rgba(180,200,255,0.02) 57px,
-              transparent 57px, transparent 70px
-            ),
-            linear-gradient(to bottom, transparent 55%, rgba(4,4,14,0.35) 80%, rgba(4,4,14,0.55) 100%)
+          background: `
+            linear-gradient(to bottom, #010105 0%, #03030a 35%, #050510 60%, #080816 100%),
+            radial-gradient(ellipse 100% 8% at 50% 85%, ${sceneTone.ground} 0%, transparent 100%)
           `,
+          backgroundBlendMode: 'normal, screen',
         }}
-      />
+      >
+        <div className="absolute inset-0" style={{
+          backgroundImage: `
+            radial-gradient(0.5px 0.5px at 10% 15%, rgba(255,255,255,0.4), transparent),
+            radial-gradient(0.5px 0.5px at 25% 8%, rgba(255,255,255,0.3), transparent),
+            radial-gradient(1px 1px at 40% 22%, rgba(255,255,255,0.2), transparent),
+            radial-gradient(0.5px 0.5px at 55% 12%, rgba(255,255,255,0.35), transparent),
+            radial-gradient(0.5px 0.5px at 70% 5%, rgba(255,255,255,0.25), transparent),
+            radial-gradient(1px 1px at 85% 18%, rgba(255,255,255,0.2), transparent),
+            radial-gradient(0.5px 0.5px at 15% 35%, rgba(255,255,255,0.15), transparent),
+            radial-gradient(1px 1px at 60% 28%, rgba(255,255,255,0.2), transparent),
+            radial-gradient(0.5px 0.5px at 35% 40%, rgba(255,255,255,0.15), transparent),
+            radial-gradient(0.5px 0.5px at 90% 32%, rgba(255,255,255,0.2), transparent),
+            radial-gradient(1px 1px at 50% 10%, rgba(255,220,180,0.15), transparent),
+            radial-gradient(0.5px 0.5px at 75% 20%, rgba(255,200,150,0.1), transparent),
+            radial-gradient(1px 1px at 20% 25%, rgba(200,220,255,0.12), transparent),
+            radial-gradient(0.5px 0.5px at 45% 30%, rgba(180,200,255,0.1), transparent),
+            radial-gradient(0.5px 0.5px at 80% 40%, rgba(255,220,180,0.08), transparent)
+          `,
+        }} />
+      </div>
 
-      {/* Layer 1 — Atmosphere / horizon haze */}
+      {/* Layer 1 — Far skyline (distant buildings, high blur) */}
       <div
         ref={atmosphereRef}
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           willChange: 'transform',
-          background: `
-            radial-gradient(ellipse 90% 12% at 50% 72%, rgba(15,25,50,0.06) 0%, transparent 100%),
-            radial-gradient(ellipse 60% 8% at 50% 78%, rgba(10,18,40,0.08) 0%, transparent 100%),
-            linear-gradient(to bottom, transparent 50%, rgba(8,12,25,0.04) 75%, rgba(8,12,25,0.08) 100%)
+          filter: 'blur(5px)',
+          opacity: 0.3,
+          backgroundImage: `
+            linear-gradient(180deg, transparent 62%, rgba(5,8,18,0.4) 65%, rgba(4,6,14,0.3) 70%, transparent 72%),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 18px,
+              rgba(6,10,22,0.5) 18px, rgba(6,10,22,0.5) 22px,
+              transparent 22px, transparent 28px,
+              rgba(7,11,24,0.4) 28px, rgba(7,11,24,0.4) 31px,
+              transparent 31px, transparent 40px,
+              rgba(5,9,20,0.45) 40px, rgba(5,9,20,0.45) 42px,
+              transparent 42px, transparent 48px,
+              rgba(8,12,25,0.35) 48px, rgba(8,12,25,0.35) 50px,
+              transparent 50px, transparent 58px,
+              rgba(6,10,22,0.4) 58px, rgba(6,10,22,0.4) 60px,
+              transparent 60px, transparent 68px,
+              rgba(7,11,24,0.35) 68px, rgba(7,11,24,0.35) 70px,
+              transparent 70px, transparent 78px,
+              rgba(5,9,20,0.5) 78px, rgba(5,9,20,0.5) 80px,
+              transparent 80px, transparent 88px,
+              rgba(8,12,25,0.3) 88px, rgba(8,12,25,0.3) 90px,
+              transparent 90px, transparent 100px
+            ),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 30px,
+              rgba(180,200,230,0.02) 30px, rgba(180,200,230,0.02) 30.5px,
+              transparent 30.5px, transparent 60px,
+              rgba(200,220,240,0.015) 60px, rgba(200,220,240,0.015) 60.5px,
+              transparent 60.5px, transparent 90px,
+              rgba(160,190,220,0.025) 90px, rgba(160,190,220,0.025) 90.5px,
+              transparent 90.5px, transparent 120px
+            )
           `,
         }}
       />
 
-      {/* Layer 2 — Ambient environment (vignette, shadows) */}
+      {/* Layer 2 — Mid skyline (city buildings, medium blur) */}
       <div
         ref={ambientRef}
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           willChange: 'transform',
-          background: `
-            radial-gradient(ellipse 120% 100% at 50% 50%, transparent 45%, rgba(0,0,0,0.35) 100%),
-            linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 12%, transparent 85%, rgba(0,0,0,0.1) 100%),
-            linear-gradient(to right, rgba(0,0,0,0.08) 0%, transparent 6%, transparent 94%, rgba(0,0,0,0.08) 100%)
+          filter: 'blur(2.5px)',
+          opacity: 0.45,
+          backgroundImage: `
+            linear-gradient(180deg, transparent 65%, rgba(6,10,20,0.5) 68%, rgba(5,8,16,0.35) 73%, transparent 76%),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 12px,
+              rgba(8,12,26,0.6) 12px, rgba(8,12,26,0.6) 16px,
+              transparent 16px, transparent 22px,
+              rgba(10,14,28,0.5) 22px, rgba(10,14,28,0.5) 28px,
+              transparent 28px, transparent 34px,
+              rgba(7,11,24,0.55) 34px, rgba(7,11,24,0.55) 36px,
+              transparent 36px, transparent 42px,
+              rgba(9,13,27,0.4) 42px, rgba(9,13,27,0.4) 45px,
+              transparent 45px, transparent 52px,
+              rgba(8,12,26,0.5) 52px, rgba(8,12,26,0.5) 54px,
+              transparent 54px, transparent 60px,
+              rgba(11,15,30,0.45) 60px, rgba(11,15,30,0.45) 64px,
+              transparent 64px, transparent 72px,
+              rgba(7,11,24,0.55) 72px, rgba(7,11,24,0.55) 74px,
+              transparent 74px, transparent 82px,
+              rgba(10,14,28,0.4) 82px, rgba(10,14,28,0.4) 84px,
+              transparent 84px, transparent 92px,
+              rgba(8,12,26,0.5) 92px, rgba(8,12,26,0.5) 95px,
+              transparent 95px, transparent 104px
+            ),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 16px,
+              rgba(255,200,120,0.04) 16px, rgba(255,200,120,0.04) 16.3px,
+              transparent 16.3px, transparent 32px,
+              rgba(255,210,140,0.03) 32px, rgba(255,210,140,0.03) 32.3px,
+              transparent 32.3px, transparent 48px,
+              rgba(200,220,255,0.035) 48px, rgba(200,220,255,0.035) 48.3px,
+              transparent 48.3px, transparent 64px,
+              rgba(255,190,100,0.05) 64px, rgba(255,190,100,0.05) 64.3px,
+              transparent 64.3px, transparent 80px,
+              rgba(255,220,160,0.03) 80px, rgba(255,220,160,0.03) 80.3px,
+              transparent 80.3px, transparent 96px,
+              rgba(180,210,255,0.04) 96px, rgba(180,210,255,0.04) 96.3px,
+              transparent 96.3px, transparent 112px
+            )
           `,
         }}
       />
 
-      {/* Layer 3 — Volumetric lighting */}
+      {/* Layer 3 — Near skyline (foreground buildings, minimal blur) */}
       <div
         ref={lightBeamRef}
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           willChange: 'transform',
-          background: `
-            conic-gradient(from 145deg at 30% 60%, rgba(40,80,180,0.015) 0%, transparent 40%, rgba(60,100,200,0.008) 70%, transparent 100%),
-            radial-gradient(ellipse 60% 4% at 25% 65%, rgba(60,120,230,0.02) 0%, transparent 100%),
-            radial-gradient(ellipse 50% 3% at 75% 55%, rgba(50,100,210,0.015) 0%, transparent 100%),
-            radial-gradient(ellipse 70% 6% at 50% 50%, rgba(25,50,120,0.01) 0%, transparent 100%)
+          filter: 'blur(1px)',
+          opacity: 0.6,
+          backgroundImage: `
+            linear-gradient(180deg, transparent 70%, rgba(5,8,18,0.6) 73%, rgba(4,6,14,0.4) 78%, transparent 82%),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 8px,
+              rgba(8,12,26,0.7) 8px, rgba(8,12,26,0.7) 13px,
+              transparent 13px, transparent 18px,
+              rgba(10,15,30,0.6) 18px, rgba(10,15,30,0.6) 24px,
+              transparent 24px, transparent 30px,
+              rgba(7,11,24,0.65) 30px, rgba(7,11,24,0.65) 33px,
+              transparent 33px, transparent 38px,
+              rgba(9,14,28,0.55) 38px, rgba(9,14,28,0.55) 42px,
+              transparent 42px, transparent 48px,
+              rgba(8,12,26,0.7) 48px, rgba(8,12,26,0.7) 50px,
+              transparent 50px, transparent 56px,
+              rgba(11,16,32,0.5) 56px, rgba(11,16,32,0.5) 58px,
+              transparent 58px, transparent 64px,
+              rgba(8,12,26,0.6) 64px, rgba(8,12,26,0.6) 67px,
+              transparent 67px, transparent 74px,
+              rgba(10,15,30,0.55) 74px, rgba(10,15,30,0.55) 76px,
+              transparent 76px, transparent 84px,
+              rgba(7,11,24,0.65) 84px, rgba(7,11,24,0.65) 86px,
+              transparent 86px, transparent 94px,
+              rgba(9,14,28,0.6) 94px, rgba(9,14,28,0.6) 97px,
+              transparent 97px, transparent 106px
+            ),
+            repeating-linear-gradient(90deg,
+              transparent 0, transparent 10px,
+              rgba(255,200,120,0.06) 10px, rgba(255,200,120,0.06) 10.3px,
+              transparent 10.3px, transparent 20px,
+              rgba(255,180,100,0.04) 20px, rgba(255,180,100,0.04) 20.3px,
+              transparent 20.3px, transparent 30px,
+              rgba(200,220,255,0.05) 30px, rgba(200,220,255,0.05) 30.3px,
+              transparent 30.3px, transparent 40px,
+              rgba(255,210,140,0.07) 40px, rgba(255,210,140,0.07) 40.3px,
+              transparent 40.3px, transparent 50px,
+              rgba(255,190,110,0.04) 50px, rgba(255,190,110,0.04) 50.3px,
+              transparent 50.3px, transparent 60px,
+              rgba(180,210,255,0.06) 60px, rgba(180,210,255,0.06) 60.3px,
+              transparent 60.3px, transparent 70px,
+              rgba(255,220,150,0.05) 70px, rgba(255,220,150,0.05) 70.3px,
+              transparent 70.3px, transparent 80px,
+              rgba(255,200,130,0.06) 80px, rgba(255,200,130,0.06) 80.3px,
+              transparent 80.3px, transparent 90px,
+              rgba(220,240,255,0.04) 90px, rgba(220,240,255,0.04) 90.3px,
+              transparent 90.3px, transparent 100px,
+              rgba(255,180,100,0.05) 100px, rgba(255,180,100,0.05) 100.3px,
+              transparent 100.3px, transparent 110px
+            )
           `,
         }}
       />
+
+      {/* Layer 4 — Atmospheric haze / ground glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
+        background: `
+          linear-gradient(to bottom, transparent 45%, ${sceneTone.tint} 65%, ${sceneTone.ground} 100%),
+          radial-gradient(ellipse 80% 10% at 50% 82%, rgba(15,25,50,0.04) 0%, transparent 100%),
+          radial-gradient(ellipse 60% 5% at 30% 78%, rgba(60,100,180,0.02) 0%, transparent 100%),
+          radial-gradient(ellipse 40% 4% at 70% 80%, rgba(30,60,120,0.015) 0%, transparent 100%)
+        `,
+      }} />
+
+      {/* Layer 5 — Volumetric light beams */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{
+        background: `
+          conic-gradient(from 148deg at 30% 65%, ${sceneTone.beam} 0%, transparent 35%, transparent 65%, ${sceneTone.beam} 85%, transparent 100%),
+          radial-gradient(ellipse 50% 3% at 25% 70%, rgba(60,120,220,0.015) 0%, transparent 100%),
+          radial-gradient(ellipse 40% 2.5% at 75% 60%, rgba(50,100,200,0.01) 0%, transparent 100%)
+        `,
+      }} />
       </CinematicErrorBoundary>
 
-      {/* Atmospheric Depth Composite */}
+      {/* Vignette — cinematic framing */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: `
-          radial-gradient(ellipse 100% 15% at 50% 75%, rgba(10,18,40,0.05) 0%, transparent 100%),
-          linear-gradient(to bottom, rgba(5,5,15,0.03) 0%, transparent 8%, transparent 75%, rgba(5,5,15,0.06) 100%)
+          radial-gradient(ellipse 130% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.4) 100%),
+          linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 10%, transparent 88%, rgba(0,0,0,0.08) 100%),
+          linear-gradient(to right, rgba(0,0,0,0.06) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.06) 100%)
         `,
       }} />
 
-      {/* Dynamic Darkness — contrast shaping */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        background: `
-          radial-gradient(ellipse 70% 50% at 50% 50%, transparent 35%, rgba(0,0,0,0.1) 100%),
-          linear-gradient(to bottom, transparent 45%, rgba(0,0,0,0.05) 100%),
-          radial-gradient(ellipse 120% 25% at 50% 0%, rgba(0,0,0,0.08) 0%, transparent 100%)
-        `,
-      }} />
-
+      {/* Perspective Scene — panels and overlays live here */}
+      <div
+        ref={sceneRef}
+        className="absolute inset-0"
+        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+      >
       {/* Synchronized Corner Brackets */}
       <div className="absolute inset-3 pointer-events-none">
-        <div className={`absolute top-0 left-0 w-6 h-6 border-l border-t ${syncColors.bracket}`} />
-        <div className={`absolute top-0 right-0 w-6 h-6 border-r border-t ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 left-0 w-6 h-6 border-l border-b ${syncColors.bracket}`} />
-        <div className={`absolute bottom-0 right-0 w-6 h-6 border-r border-b ${syncColors.bracket}`} />
+        <div className={`absolute top-0 left-0 w-6 h-6 border-l border-t ${bracketColor}`} />
+        <div className={`absolute top-0 right-0 w-6 h-6 border-r border-t ${bracketColor}`} />
+        <div className={`absolute bottom-0 left-0 w-6 h-6 border-l border-b ${bracketColor}`} />
+        <div className={`absolute bottom-0 right-0 w-6 h-6 border-r border-b ${bracketColor}`} />
       </div>
 
       {/* Status Indicators - Synchronized */}
       <div className="absolute top-6 left-6 flex items-center gap-4 pointer-events-none">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${syncColors.indicator} ${operationalPressure === 'critical' ? 'animate-pulse' : ''}`} />
+          <span className={`w-1.5 h-1.5 rounded-sm ${dotColor}`} />
           <span className={`font-mono text-[10px] uppercase ${pressure.color}`}>
             {pressure.text}
           </span>
         </div>
         {daysBehindRoadmap > 7 && (
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500/60" />
+            <span className="w-1.5 h-1.5 rounded-sm bg-amber-500/60" />
             <span className="font-mono text-[10px] text-amber-500/60">
               {daysBehindRoadmap}d behind
             </span>
@@ -443,7 +508,7 @@ function WorkspaceContent() {
       {lifecycle && (
         <div className="absolute bottom-6 right-6 pointer-events-none">
           <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${
+            <div className={`w-1.5 h-1.5 rounded-sm ${
               lifecycle.phase === 'Expansion' ? 'bg-emerald-500' :
               lifecycle.phase === 'Recovery' || lifecycle.phase === 'Stabilization' ? 'bg-amber-500' :
               lifecycle.phase === 'DriftRisk' ? 'bg-red-500' :
@@ -536,8 +601,7 @@ function WorkspaceContent() {
       >
         <OpsEvidence />
       </FloatingPanel>
-
-
+      </div> {/* end sceneRef perspective container */}
 
       {/* Bottom Status Bar — operational persistence identity */}
       <div className={`absolute bottom-0 left-0 right-0 h-7 border-t flex items-center justify-between px-4 ${
@@ -556,7 +620,7 @@ function WorkspaceContent() {
             {pressure.text}
           </span>
           <span className="text-zinc-800">|</span>
-          <span className={`${syncColors.indicator.replace('bg-', 'text-')}/60`}>●</span>
+          <span className={`${dotColor.replace('bg-', 'text-')}`}>●</span>
           {continuity.identity.totalOperationalDays > 5 && forecast.temporal.confidence > 30 && (
             <>
               <span className="text-zinc-800">|</span>
@@ -590,7 +654,12 @@ function WorkspaceContent() {
 
       <style>{`
         .workspace-environment {
-          transform: translateZ(0);
+          perspective: 900px;
+          perspective-origin: 50% 50%;
+          overflow: hidden;
+        }
+        .floating-panel {
+          backface-visibility: hidden;
         }
       `}</style>
     </div>
