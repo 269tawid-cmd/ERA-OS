@@ -55,7 +55,7 @@ export function JourneyStatus({ stats, compact = false }: JourneyStatusProps) {
   }
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="pb-3 border-b border-zinc-800/60">
         <div className="flex items-center justify-between">
           <span className="font-mono text-sm text-zinc-400 uppercase tracking-wider">

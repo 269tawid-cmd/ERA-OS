@@ -90,24 +90,46 @@ export default async function Dashboard() {
 
   return (
     <div className="min-h-screen text-zinc-200 animate-page-enter">
+      {/* Atmospheric background */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -10 }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050508] via-[#080812] to-[#0a0a18]" />
+        <div className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `
+              radial-gradient(ellipse 80% 30% at 50% 85%, rgba(60,100,200,0.3) 0%, transparent 100%),
+              radial-gradient(ellipse 50% 20% at 30% 70%, rgba(80,120,220,0.15) 0%, transparent 100%)
+            `,
+          }}
+        />
+        <div className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundSize: '256px 256px',
+            mixBlendMode: 'overlay',
+          }}
+        />
+      </div>
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* ─── Header ─── */}
         <header className="mb-8">
-          <div className="hud-frame p-4 sm:p-5">
+          <div className="hud-frame p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="font-mono text-[10px] text-zinc-700 tracking-widest uppercase">era-os · operational interface</span>
+                  <span className="w-1.5 h-1.5 rounded-sm bg-zinc-600" />
+                  <span className="font-mono text-[10px] text-zinc-600 tracking-widest uppercase">era-os · operational interface</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <h1 className="terminal-heading font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
                     OPERATIONAL BRIEFING
                   </h1>
                 </div>
-                <p className="font-mono text-sm text-zinc-600 mt-2 ml-6">
+                <p className="font-mono text-sm text-zinc-600 mt-2 ml-0">
                   Roadmap-aware operations terminal
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 <Link href="/import">
                   <Button variant="secondary" size="sm" className="hidden sm:flex border-zinc-700/60">
                     <span className="text-zinc-500 mr-1">+</span> Load Blueprint
@@ -125,6 +147,7 @@ export default async function Dashboard() {
           </div>
         </header>
 
+        {/* ─── Mobile Blueprint CTA ─── */}
         <div className="sm:hidden mb-6">
           <Link href="/import">
             <Button variant="secondary" size="sm" className="w-full">
@@ -133,7 +156,8 @@ export default async function Dashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+        {/* ─── Primary: Month + Mentor ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
             <MonthCard
               month={currentMonth}
@@ -146,7 +170,8 @@ export default async function Dashboard() {
           </div>
         </div>
 
-        <div className="mb-6">
+        {/* ─── Quick Stats ─── */}
+        <div className="mb-8">
           <QuickStats
             currentMonth={currentMonth}
             monthTitle={monthData?.title || 'Unknown'}
@@ -158,15 +183,22 @@ export default async function Dashboard() {
           />
         </div>
 
-        <div className="mb-6 p-4 bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-sm rounded-lg">
-          <JourneyStatus stats={journeyStats} compact />
+        {/* ─── Journey Status ─── */}
+        <div className="mb-8">
+          <Card className="border-zinc-800/40">
+            <CardContent className="py-5">
+              <JourneyStatus stats={journeyStats} compact />
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="mb-6">
+        {/* ─── Monthly Progress ─── */}
+        <div className="mb-8">
           <MonthlyProgressGrid currentMonth={currentMonth} tasks={taskList} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+        {/* ─── Charts: XP + Productivity ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <XPBarChart pillarXP={pillarXP} />
           <ProductivitySummary
             tasks={taskList}
@@ -174,7 +206,8 @@ export default async function Dashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+        {/* ─── Focus + Insights ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <TodaysFocus
             tasks={taskList}
             monthData={monthData}
@@ -187,12 +220,14 @@ export default async function Dashboard() {
           />
         </div>
 
-        <div className="mb-6">
+        {/* ─── Pillar Progress ─── */}
+        <div className="mb-8">
           <PillarProgress pillarXP={pillarXP} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
+        {/* ─── Log + CTF ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
             <CardHeader className="pb-3">
                 <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                   Session Log
@@ -206,7 +241,7 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
+          <Card>
             <CardHeader className="pb-3">
                 <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                   Security Log
@@ -221,8 +256,9 @@ export default async function Dashboard() {
           </Card>
         </div>
 
-        <div className="mb-6">
-          <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
+        {/* ─── Task Form ─── */}
+        <div className="mb-8">
+          <Card>
             <CardHeader className="pb-3">
                 <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
                   Initiate Operation
@@ -234,7 +270,10 @@ export default async function Dashboard() {
           </Card>
         </div>
 
-        <TaskList tasks={taskList} />
+        {/* ─── Task List ─── */}
+        <div className="mb-8">
+          <TaskList tasks={taskList} />
+        </div>
       </main>
     </div>
   );

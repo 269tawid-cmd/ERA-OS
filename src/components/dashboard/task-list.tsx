@@ -101,7 +101,7 @@ export function TaskList({ tasks: initialTasks, onTasksGenerated }: TaskListProp
   const manualCount = tasks.filter(t => t.origin === 'manual').length;
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-md overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-zinc-800/60">
         <div className="flex items-center gap-4">
           <h2 className="font-mono text-base font-semibold text-zinc-200 uppercase tracking-wider">Active Operations</h2>

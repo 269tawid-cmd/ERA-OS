@@ -27,7 +27,7 @@ export function XPBarChart({ pillarXP }: XPBarChartProps) {
   const maxXP = Math.max(...data.map((d) => d.xp), 1);
 
   return (
-    <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
