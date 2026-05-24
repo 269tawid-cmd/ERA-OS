@@ -2,11 +2,11 @@
 
 import { createClientWithAuth } from '@/lib/supabase/server';
 import { z } from 'zod';
-import type { CtfEntryRow } from '@/lib/supabase/database.types';
+import type { CtfEntryRow, Json, UserProgressRow } from '@/lib/supabase/database.types';
 import type { CTFPlatform, CTFCategory, CTFDifficulty } from '@/types';
 
 const createCTFSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1, 'Challenge name is required').max(200, 'Name too long'),
   platform: z.enum(['PicoCTF', 'HackTheBox', 'TryHackMe', 'CTFtime', 'Other']),
   category: z.enum(['Web', 'Crypto', 'Forensics', 'Pwn', 'Misc']),
   difficulty: z.enum(['Easy', 'Medium', 'Hard']),
@@ -24,73 +24,84 @@ export async function createCTF(data: {
   flag_notes?: string;
   xp_earned?: number;
 }) {
-  const { client, user } = await createClientWithAuth();
+  try {
+    const { client, user } = await createClientWithAuth();
 
-  const parsed = createCTFSchema.safeParse(data);
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message || 'Invalid input');
-  }
-
-  const xpEarned = parsed.data.solved ? parsed.data.xp_earned : 0;
-
-  const insertResult = await (client as unknown as { from: (t: string) => { insert: (d: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } }).from('ctf_entries').insert({
-    user_id: user.id,
-    name: parsed.data.name,
-    platform: parsed.data.platform,
-    category: parsed.data.category,
-    difficulty: parsed.data.difficulty,
-    solved: parsed.data.solved,
-    flag_notes: parsed.data.flag_notes || null,
-    xp_earned: xpEarned,
-    date: new Date().toISOString().split('T')[0],
-  });
-
-if (insertResult.error) {
-    throw new Error(insertResult.error.message);
-  }
-
-  if (xpEarned > 0) {
-    const { data: progress } = await client
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', user.id)
-      .single() as { data: import('@/lib/supabase/database.types').UserProgressRow | null };
-
-    if (progress) {
-      const pillarXP = progress.pillar_xp as Record<string, number>;
-      const newPillarXP = {
-        ...pillarXP,
-        HACK: (pillarXP.HACK || 0) + xpEarned,
-      };
-
-      await client
-        .from('user_progress')
-        // @ts-expect-error - Supabase client type inference issue
-        .update({
-          pillar_xp: newPillarXP,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
+    const parsed = createCTFSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
     }
-  }
 
-  return { success: true };
+    const xpEarned = parsed.data.solved ? parsed.data.xp_earned : 0;
+
+    const insertResult = await (client as unknown as { from: (t: string) => { insert: (d: Record<string, unknown>) => Promise<{ error: { message: string } | null }> } }).from('ctf_entries').insert({
+      user_id: user.id,
+      name: parsed.data.name,
+      platform: parsed.data.platform,
+      category: parsed.data.category,
+      difficulty: parsed.data.difficulty,
+      solved: parsed.data.solved,
+      flag_notes: parsed.data.flag_notes || null,
+      xp_earned: xpEarned,
+      date: new Date().toISOString().split('T')[0],
+    });
+
+    if (insertResult.error) {
+      return { success: false, error: insertResult.error.message };
+    }
+
+    if (xpEarned > 0) {
+      const { data: progress } = await client
+        .from('user_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .single() as { data: UserProgressRow | null };
+
+      if (progress) {
+        const pillarXP = progress.pillar_xp as Record<string, number>;
+        const newPillarXP = {
+          ...pillarXP,
+          HACK: (pillarXP.HACK || 0) + xpEarned,
+        };
+
+        const { error: xpError } = await client
+          .from('user_progress')
+          .update({
+            pillar_xp: newPillarXP as Json,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq('user_id', user.id);
+
+        if (xpError) {
+          console.error('Failed to update XP for CTF entry:', xpError.message);
+        }
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to log CTF' };
+  }
 }
 
 export async function deleteCTF(ctfId: string) {
-  const { client, user } = await createClientWithAuth();
+  try {
+    const { client, user } = await createClientWithAuth();
 
-  const { error } = await client
-    .from('ctf_entries')
-    .delete()
-    .eq('id', ctfId)
-    .eq('user_id', user.id);
+    const { error } = await client
+      .from('ctf_entries')
+      .delete()
+      .eq('id', ctfId)
+      .eq('user_id', user.id);
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete CTF entry' };
   }
-
-  return { success: true };
 }
 
 export async function getRecentCTFs(limit = 10): Promise<CtfEntryRow[]> {

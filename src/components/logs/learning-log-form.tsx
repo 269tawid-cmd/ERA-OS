@@ -25,16 +25,22 @@ export function LearningLogForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isOverLimit || !content.trim()) return;
+    if (loading || isOverLimit || !content.trim()) return;
 
     setError(null);
     setLoading(true);
     try {
-      await createLog({
+      const result = await createLog({
         content: content.trim(),
         pillar,
         is_win: isWin,
       });
+
+      if (!result.success) {
+        setError(result.error || 'Failed to save log');
+        return;
+      }
+
       setContent('');
       setIsWin(false);
 
@@ -42,7 +48,7 @@ export function LearningLogForm() {
       if (def.message) acknowledge(def.message, def.weight);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : 'Unexpected error');
     } finally {
       setLoading(false);
     }
@@ -83,7 +89,7 @@ export function LearningLogForm() {
       </div>
 
       <div className="relative">
-        <label className="block text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider font-mono">
+        <label className="block font-mono text-xs text-zinc-400 uppercase tracking-wider mb-2">
           Log Entry
         </label>
         <textarea
@@ -91,10 +97,10 @@ export function LearningLogForm() {
           onChange={(e) => setContent(e.target.value)}
           placeholder="What did you learn today? (max 500 chars)"
           rows={4}
-          className={`w-full px-4 py-3 bg-zinc-950 border rounded-lg text-base text-zinc-200 placeholder-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] transition-all duration-150 ${
+          className={`w-full px-4 py-3 bg-zinc-950 border rounded-lg text-base text-zinc-200 placeholder-zinc-500 resize-none transition-all duration-150 command-input edge-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-offset-[#050505] ${
             isOverLimit
               ? 'border-red-500/50 focus:ring-red-500/30'
-              : 'border-zinc-700/80 focus:border-zinc-600 focus:ring-zinc-500/20 hover:border-zinc-600'
+              : 'border-zinc-700/80 focus:border-amber-500/40 focus:ring-amber-500/20 hover:border-zinc-600'
           }`}
         />
         <div className="absolute bottom-3 right-3">

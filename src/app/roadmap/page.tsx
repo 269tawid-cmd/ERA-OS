@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUser } from "@/lib/supabase/auth";
 import { redirect } from "next/navigation";
-import { getMonthData, getRoadmapProgress } from "@/lib/roadmap";
-import { RoadmapTimeline, JourneyStatus } from "@/components/roadmap";
+import { getRoadmapProgress } from "@/lib/roadmap";
+import { OperationalRoadmap, JourneyStatus } from "@/components/roadmap";
 import { Card, CardHeader, CardContent } from "@/components/ui";
 import type {
   TaskRow,
@@ -45,7 +45,6 @@ export default async function RoadmapPage() {
     .eq("user_id", user.id)) as { data: CtfEntryRow[] | null };
 
   const currentMonth = progress?.current_month || 1;
-  const monthData = getMonthData(currentMonth);
   const roadmapProgress = getRoadmapProgress(
     currentMonth,
     progress?.start_date,
@@ -116,64 +115,29 @@ export default async function RoadmapPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-          <div className="lg:col-span-2">
-            <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+            <div className="lg:col-span-2">
+              <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="pb-3">
                   <span className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
-                    Year 1 Timeline
+                    Year 1 Progression
                   </span>
-                  <span className="font-mono text-xs text-zinc-400">
-                    {roadmapProgress.completed}/12 months
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-3">
-                <RoadmapTimeline currentMonth={currentMonth} tasks={taskList} />
-              </CardContent>
-            </Card>
-          </div>
+                </CardHeader>
+                <CardContent className="pt-3">
+                  <OperationalRoadmap
+                    currentMonth={currentMonth}
+                    doneMonths={monthsWithCompletedTasks}
+                    tasks={taskList}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
           <div>
             <JourneyStatus stats={journeyStats} />
           </div>
         </div>
 
-        <Card className="bg-zinc-900/60 border border-zinc-800/60 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="pb-3">
-            <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
-              Current Phase: {monthData?.title || "Unknown"}
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-5">
-              <div>
-                    <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
-                      Objectives
-                    </p>
-                <div className="space-y-2">
-                  {monthData?.focus.slice(0, 4).map((f, i) => (
-                    <p key={i} className="font-mono text-sm text-zinc-300">
-                      › {f}
-                    </p>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="font-mono text-xs text-zinc-400 uppercase tracking-widest mb-3">
-                  Key Deliverables
-                </p>
-                <div className="space-y-1">
-                  {monthData?.deliverables.slice(0, 3).map((d, i) => (
-                    <p key={i} className="font-mono text-xs text-zinc-400">
-                      › {d}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </main>
     </div>
   );

@@ -4,22 +4,24 @@ import type { HTMLAttributes } from 'react';
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'bordered' | 'glow';
   glow?: 'hack' | 'build' | 'ai' | 'presence';
+  hover?: boolean;
 }
 
-export function Card({ className, variant = 'default', glow, children, ...props }: CardProps) {
+export function Card({ className, variant = 'default', glow, hover: withHover, children, ...props }: CardProps) {
   return (
     <div
       className={clsx(
         'rounded-lg transition-all duration-200',
         {
           'cyber-panel border border-zinc-800/40 shadow-sm': variant === 'default',
-          'cyber-panel border border-zinc-700/40 backdrop-blur-md shadow-sm': variant === 'bordered',
-          'cyber-panel border border-zinc-800/30 backdrop-blur-md shadow-sm': variant === 'glow',
-          'border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]': glow === 'hack',
-          'border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]': glow === 'build',
-          'border-teal-500/30 shadow-[0_0_15px_rgba(45,212,191,0.1)]': glow === 'ai',
-          'border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]': glow === 'presence',
+          'cyber-panel border border-zinc-700/40 shadow-sm': variant === 'bordered',
+          'cyber-panel border border-zinc-800/30 shadow-sm': variant === 'glow',
         },
+        glow === 'hack' && 'glow-hack border-red-500/30',
+        glow === 'build' && 'glow-build border-purple-500/30',
+        glow === 'ai' && 'glow-ai border-teal-500/30',
+        glow === 'presence' && 'glow-presence border-amber-500/30',
+        withHover && 'hover:border-zinc-700/60 cursor-default',
         className
       )}
       {...props}

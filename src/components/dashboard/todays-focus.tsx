@@ -12,22 +12,39 @@ interface TodaysFocusProps {
 }
 
 export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: TodaysFocusProps) {
-  const recommendations: { title: string; reason: string; priority: 'high' | 'medium' }[] = [];
+  const recommendations: { title: string; reason: string; priority: 'high' | 'medium'; origin?: string }[] = [];
 
   const monthTasks = tasks.filter(t => t.month === currentMonth && t.status !== 'done');
-  if (monthTasks.length > 0) {
+  const monthTasksByOrigin = {
+    generated: monthTasks.filter(t => t.origin === 'generated'),
+    manual: monthTasks.filter(t => t.origin === 'manual' || !t.origin),
+  };
+
+  const nextGeneratedTask = monthTasksByOrigin.generated[0];
+  const nextManualTask = monthTasksByOrigin.manual[0];
+
+  if (nextGeneratedTask) {
     recommendations.push({
-      title: monthTasks[0].title,
-      reason: 'From your current roadmap month',
-      priority: 'high'
+      title: nextGeneratedTask.title,
+      reason: 'From roadmap templates — current phase',
+      priority: 'high',
+      origin: 'ROADMAP',
+    });
+  }
+
+  if (recommendations.length < 2 && nextManualTask) {
+    recommendations.push({
+      title: nextManualTask.title,
+      reason: 'From your operations backlog',
+      priority: 'medium',
     });
   }
 
   if (recommendations.length === 0 && monthData?.suggested_tasks) {
     const suggested = monthData.suggested_tasks.slice(0, 1).map(title => ({
       title,
-      reason: 'Suggested for current phase',
-      priority: 'medium' as const
+      reason: 'Suggested for current phase — generate tasking to activate',
+      priority: 'medium' as const,
     }));
     recommendations.push(...suggested);
   }
@@ -78,8 +95,13 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
       <CardContent className="space-y-2">
         {recommendations.length === 0 ? (
           <div className="text-center py-6">
-            <p className="font-mono text-sm text-zinc-400 mb-1">All caught up</p>
-            <p className="font-mono text-xs text-zinc-500">Initiate a task or generate automated tasking</p>
+            <p className="font-mono text-sm text-zinc-400 mb-1">No active operations</p>
+            <p className="font-mono text-xs text-zinc-500">
+              {monthData
+                ? `Use "Generate Tasking" below to pull tasks from M${currentMonth.toString().padStart(2, '0')} roadmap`
+                : 'Initiate a task or generate automated tasking'
+              }
+            </p>
           </div>
         ) : (
           recommendations.map((rec, i) => (
@@ -87,17 +109,24 @@ export function TodaysFocus({ tasks, monthData, currentMonth, pillarXP }: Todays
               key={i}
               className="p-3 bg-zinc-900/50 border border-zinc-800/50 rounded-md"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="font-mono text-sm text-zinc-200 truncate">{rec.title}</p>
-                  <p className="font-mono text-xs text-zinc-400 mt-1">{rec.reason}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-sm text-zinc-200 truncate">{rec.title}</p>
+                    <p className="font-mono text-xs text-zinc-400 mt-1">{rec.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {rec.origin && (
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 bg-zinc-700/40 text-zinc-400 border border-zinc-700/50 rounded">
+                        {rec.origin}
+                      </span>
+                    )}
+                    {rec.priority === 'high' && (
+                      <span className="font-mono text-xs px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded">
+                        PRIORITY
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {rec.priority === 'high' && (
-                  <span className="font-mono text-xs px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded flex-shrink-0">
-                    PRIORITY
-                  </span>
-                )}
-              </div>
             </div>
           ))
         )}

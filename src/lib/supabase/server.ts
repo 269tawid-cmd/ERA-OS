@@ -44,17 +44,6 @@ export async function createClientWithAuth() {
   return { client, user };
 }
 
-export async function getUser() {
-  const client = await createClient();
-  const { data: { user }, error } = await client.auth.getUser();
-
-  if (error || !user) {
-    return null;
-  }
-
-  return user;
-}
-
 export async function getSession() {
   const client = await createClient();
   const { data: { session }, error } = await client.auth.getSession();

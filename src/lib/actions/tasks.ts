@@ -2,7 +2,7 @@
 
 import { createClientWithAuth } from '@/lib/supabase/server';
 import { z } from 'zod';
-import type { TaskRow } from '@/lib/supabase/database.types';
+import type { TaskRow, Json } from '@/lib/supabase/database.types';
 
 const updateStatusSchema = z.object({
   taskId: z.string().uuid(),
@@ -10,121 +10,152 @@ const updateStatusSchema = z.object({
 });
 
 export async function updateTaskStatus(taskId: string, newStatus: string) {
-  const { client, user } = await createClientWithAuth();
+  try {
+    const { client, user } = await createClientWithAuth();
 
-  const parsed = updateStatusSchema.safeParse({
-    taskId,
-    newStatus,
-  });
+    const parsed = updateStatusSchema.safeParse({ taskId, newStatus });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
+    }
 
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message || 'Invalid input');
-  }
-
-  const { data: task } = await client
-    .from('tasks')
-    .select('*')
-    .eq('id', taskId)
-    .eq('user_id', user.id)
-    .single() as { data: TaskRow | null };
-
-  if (!task) {
-    throw new Error('Task not found or access denied');
-  }
-
-  const updates: Record<string, unknown> = {
-    status: newStatus,
-  };
-
-  if (newStatus === 'done' && task.status !== 'done') {
-    updates.completed_at = new Date().toISOString();
-
-    const { data: progress } = await client
-      .from('user_progress')
+    const { data: task } = await client
+      .from('tasks')
       .select('*')
+      .eq('id', taskId)
       .eq('user_id', user.id)
-      .single() as { data: import('@/lib/supabase/database.types').UserProgressRow | null };
+      .single() as { data: TaskRow | null };
 
-    if (progress) {
-      const pillarXP = progress.pillar_xp as Record<string, number>;
-      const newPillarXP = {
-        ...pillarXP,
-        [task.pillar]: (pillarXP[task.pillar] || 0) + task.xp_value,
-      };
+    if (!task) {
+      return { success: false, error: 'Task not found or access denied' };
+    }
 
-      // Get the most recently completed task to calculate streak
-      const { data: lastCompletedTask } = await client
-        .from('tasks')
-        .select('completed_at')
+    const updates: Record<string, Json> = {
+      status: newStatus,
+    };
+
+    if (newStatus === 'done' && task.status !== 'done') {
+      updates.completed_at = new Date().toISOString();
+
+      const { data: progress } = await client
+        .from('user_progress')
+        .select('*')
         .eq('user_id', user.id)
-        .eq('status', 'done')
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: false })
-        .limit(1)
-        .single() as { data: { completed_at: string } | null };
+        .single() as { data: import('@/lib/supabase/database.types').UserProgressRow | null };
 
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      if (progress) {
+        const pillarXP = progress.pillar_xp as Record<string, number>;
+        const newPillarXP = {
+          ...pillarXP,
+          [task.pillar]: (pillarXP[task.pillar] || 0) + task.xp_value,
+        };
 
-      let newStreak = progress.streak_current;
+        const { data: lastCompletedTask } = await client
+          .from('tasks')
+          .select('completed_at')
+          .eq('user_id', user.id)
+          .eq('status', 'done')
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(1)
+          .single() as { data: { completed_at: string } | null };
 
-      if (lastCompletedTask) {
-        const lastCompletedDate = lastCompletedTask.completed_at?.split('T')[0];
-        if (lastCompletedDate === today) {
-          // Already completed something today, keep streak same
-        } else if (lastCompletedDate === yesterdayStr) {
-          // Last completion was yesterday, increment streak
-          newStreak += 1;
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        let newStreak = progress.streak_current;
+
+        if (lastCompletedTask) {
+          const lastCompletedDate = lastCompletedTask.completed_at?.split('T')[0];
+          if (lastCompletedDate === today) {
+          } else if (lastCompletedDate === yesterdayStr) {
+            newStreak += 1;
+          } else {
+            newStreak = 1;
+          }
         } else {
-          // Streak broken, start fresh
           newStreak = 1;
         }
-      } else {
-        // First ever completed task
-        newStreak = 1;
+
+        const { error: progressError } = await client
+          .from('user_progress')
+          .update({
+            pillar_xp: newPillarXP as Json,
+            streak_current: newStreak,
+            streak_best: Math.max(newStreak, progress.streak_best),
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq('user_id', user.id);
+
+        if (progressError) {
+          console.error('Failed to update progress:', progressError.message);
+        }
       }
-
-      await client
-        .from('user_progress')
-        // @ts-expect-error - Supabase client type inference issue
-        .update({
-          pillar_xp: newPillarXP,
-          streak_current: newStreak,
-          streak_best: Math.max(newStreak, progress.streak_best),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
     }
+
+    const { error } = await client
+      .from('tasks')
+      .update(updates as never)
+      .eq('id', taskId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update task' };
   }
+}
 
-  const { error } = await client
-    .from('tasks')
-    // @ts-expect-error - Supabase client type inference issue
-    .update(updates)
-    .eq('id', taskId)
-    .eq('user_id', user.id);
+const updatePrioritySchema = z.object({
+  taskId: z.string().uuid(),
+  priority: z.enum(['low', 'medium', 'high']),
+});
 
-  if (error) {
-    throw new Error(error.message);
+export async function updateTaskPriority(taskId: string, priority: string) {
+  try {
+    const { client, user } = await createClientWithAuth();
+
+    const parsed = updatePrioritySchema.safeParse({ taskId, priority });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
+    }
+
+    const { error } = await client
+      .from('tasks')
+      .update({ priority } as never)
+      .eq('id', taskId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update priority' };
   }
-
-  return { success: true };
 }
 
 export async function deleteTask(taskId: string) {
-  const { client, user } = await createClientWithAuth();
+  try {
+    const { client, user } = await createClientWithAuth();
 
-  const { error } = await client
-    .from('tasks')
-    .delete()
-    .eq('id', taskId)
-    .eq('user_id', user.id);
+    const { error } = await client
+      .from('tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('user_id', user.id);
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete task' };
   }
-
-  return { success: true };
 }

@@ -27,7 +27,7 @@ export function MonthCard({ month, monthData, progress }: MonthCardProps) {
           </div>
           <div className="text-right">
             <p className="font-mono text-3xl font-bold text-zinc-100">{percentage}%</p>
-            <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">cycle progress</p>
+            <p className="font-mono text-xs text-zinc-500 uppercase tracking-wider mt-1">month completion</p>
           </div>
         </div>
 

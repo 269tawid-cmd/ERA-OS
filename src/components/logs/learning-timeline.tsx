@@ -29,8 +29,9 @@ export function LearningTimeline({ logs: initialLogs }: LearningTimelineProps) {
 
   if (logs.length === 0) {
     return (
-      <div className="font-mono text-xs text-zinc-600 text-center py-6">
-        No session records yet.
+      <div className="text-center py-8">
+        <span className="font-mono text-xs text-zinc-500">No session records</span>
+        <p className="font-mono text-[10px] text-zinc-600 mt-1.5">Log your first study session above</p>
       </div>
     );
   }

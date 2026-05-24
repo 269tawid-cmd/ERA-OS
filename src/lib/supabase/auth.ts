@@ -74,23 +74,8 @@ export async function getUser() {
   }
 }
 
-export async function getCurrentUser() {
-  try {
-    const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      return null;
-    }
-
-    return user;
-  } catch {
-    return null;
-  }
-}
-
 export async function requireAuth() {
-  const user = await getCurrentUser();
+  const user = await getUser();
 
   if (!user) {
     redirect('/auth/login');

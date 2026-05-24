@@ -24,12 +24,12 @@ export function CTFForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (loading || !name.trim()) return;
 
     setError(null);
     setLoading(true);
     try {
-      await createCTF({
+      const result = await createCTF({
         name: name.trim(),
         platform,
         category,
@@ -38,6 +38,12 @@ export function CTFForm() {
         flag_notes: flagNotes.trim() || undefined,
         xp_earned: solved ? parseInt(xpEarned, 10) || 0 : 0,
       });
+
+      if (!result.success) {
+        setError(result.error || 'Failed to log CTF');
+        return;
+      }
+
       setName('');
       setFlagNotes('');
       setSolved(false);
@@ -47,7 +53,7 @@ export function CTFForm() {
       if (def.message) acknowledge(def.message, def.weight);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to log CTF');
+      setError(err instanceof Error ? err.message : 'Unexpected error');
     } finally {
       setLoading(false);
     }

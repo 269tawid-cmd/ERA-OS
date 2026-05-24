@@ -40,7 +40,7 @@ export default async function LoginPage() {
           <div className="font-mono text-[10px] text-zinc-700 uppercase tracking-widest mb-3">
             era-os // authentication
           </div>
-          <h1 className="font-mono text-4xl font-bold text-zinc-100 tracking-tight mb-2">
+          <h1 className="font-mono text-3xl font-bold text-zinc-100 tracking-tight mb-2">
             Era OS
           </h1>
           <p className="font-mono text-xs text-zinc-500">

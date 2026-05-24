@@ -6,25 +6,8 @@ import { getDBRoadmapSchema } from './roadmap';
 import { ingestYear1Roadmap } from '@/lib/roadmap/ingest';
 import { getTodayMission } from '@/lib/roadmap/task-generator';
 import { ROADMAP_DATA } from '@/lib/roadmap';
-import type { TaskRow, UserProgressRow } from '@/lib/supabase/database.types';
+import type { TaskRow, UserProgressRow, Json } from '@/lib/supabase/database.types';
 import type { YearlyRoadmapSchema } from '@/lib/roadmap/schema';
-
-type InsertTask = {
-  user_id: string;
-  title: string;
-  description: string;
-  pillar: Pillar;
-  month: number;
-  priority: Priority;
-  status: 'todo';
-  xp_value: number;
-  origin: 'generated' | 'manual';
-  category: string;
-  source_template: string | null;
-  generation_date: string | null;
-  generation_context: Record<string, unknown> | null;
-  is_recurring: boolean;
-};
 
 interface GenerateMissionResult {
   success: boolean;
@@ -147,25 +130,27 @@ export async function generateTodayMission(): Promise<GenerateMissionResult> {
       continue;
     }
     
-    const insertData: InsertTask = {
+    const insertData = {
       user_id: user.id,
       title: generated.title,
       description: generated.description,
       pillar: generated.pillar,
       month: currentMonth,
       priority: generated.priority,
-      status: 'todo',
+      status: 'todo' as const,
       xp_value: generated.xp_value,
-      origin: 'generated',
+      due_date: null,
+      completed_at: null,
+      is_recurring: false,
+      recurrence: null,
+      origin: 'generated' as const,
       category: generated.category,
       source_template: generated.source_template || null,
       generation_date: new Date().toISOString().split('T')[0],
-      generation_context: { reason: generated.reason },
-      is_recurring: false,
+      generation_context: { reason: generated.reason } as Json,
     };
-    
-    // @ts-expect-error - Supabase insert typing issue
-    const { data, error } = await client.from('tasks').insert(insertData).select().single() as { data: TaskRow | null; error: { message: string } | null };
+
+    const { data, error } = await client.from('tasks').insert(insertData as never).select().single() as { data: TaskRow | null; error: { message: string } | null };
     
     if (data && !error) {
       const taskData = data as TaskRow;
@@ -206,46 +191,57 @@ export async function createTask(data: {
   priority: 'high' | 'medium' | 'low';
   xp_value: number;
 }) {
-  const { client, user } = await createClientWithAuth();
-  
-  const insertData: InsertTask = {
-    user_id: user.id,
-    title: data.title,
-    description: data.description || '',
-    pillar: data.pillar,
-    month: data.month,
-    priority: data.priority,
-    status: 'todo',
-    xp_value: data.xp_value,
-    origin: 'manual',
-    category: 'practice',
-    source_template: null,
-    generation_date: null,
-    generation_context: null,
-    is_recurring: false,
-  };
-  
-  // @ts-expect-error - Supabase insert typing issue
-  const { data: task, error } = await client.from('tasks').insert(insertData).select().single() as { data: TaskRow | null; error: { message: string } | null };
-  
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const { client, user } = await createClientWithAuth();
+    
+    if (!data.title.trim()) {
+      return { success: false, error: 'Task title is required' };
+    }
+
+    const insertData = {
+      user_id: user.id,
+      title: data.title.trim(),
+      description: data.description || '',
+      pillar: data.pillar,
+      month: data.month,
+      priority: data.priority,
+      status: 'todo' as const,
+      xp_value: data.xp_value,
+      due_date: null,
+      completed_at: null,
+      is_recurring: false,
+      recurrence: null,
+      origin: 'manual' as const,
+      category: 'practice' as const,
+      source_template: null,
+      generation_date: null,
+      generation_context: null,
+    };
+
+    const { data: task, error } = await client.from('tasks').insert(insertData as never).select().single() as { data: TaskRow | null; error: { message: string } | null };
+    
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    
+    const taskData = task as TaskRow;
+    return {
+      success: true,
+      id: taskData.id,
+      title: taskData.title,
+      description: taskData.description,
+      pillar: taskData.pillar,
+      month: taskData.month,
+      priority: taskData.priority,
+      status: taskData.status,
+      xp_value: taskData.xp_value,
+      origin: taskData.origin,
+      category: taskData.category,
+      created_at: taskData.created_at,
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to create task' };
   }
-  
-  const taskData = task as TaskRow;
-  return {
-    id: taskData.id,
-    title: taskData.title,
-    description: taskData.description,
-    pillar: taskData.pillar,
-    month: taskData.month,
-    priority: taskData.priority,
-    status: taskData.status,
-    xp_value: taskData.xp_value,
-    origin: taskData.origin,
-    category: taskData.category,
-    created_at: taskData.created_at,
-  };
 }
 
 export async function getTasksByOrigin(userId: string, origin: 'generated' | 'manual' | 'all') {

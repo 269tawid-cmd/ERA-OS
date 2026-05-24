@@ -12,10 +12,9 @@ import {
 } from '@/components/dashboard';
 import { OperationsList } from '@/components/operations';
 import { MentorPanel } from '@/components/mentor';
-import { XPBarChart, MonthlyProgressGrid, ProductivitySummary } from '@/components/analytics';
-import { LearningLogForm, LearningTimeline } from '@/components/logs';
-import { CTFForm, CTFList } from '@/components/ctf';
-import { JourneyStatus } from '@/components/roadmap';
+import { LearningLogForm, OperationalTimeline } from '@/components/logs';
+import { CTFForm } from '@/components/ctf';
+import { MonthProgression } from '@/components/roadmap';
 import { Card, CardHeader, CardContent, Button } from '@/components/ui';
 import type { TaskRow, UserProgressRow, LogRow, CtfEntryRow } from '@/lib/supabase/database.types';
 
@@ -46,14 +45,14 @@ export default async function Dashboard() {
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(15) as { data: LogRow[] | null };
+    .limit(25) as { data: LogRow[] | null };
 
   const { data: ctfEntries } = await supabase
     .from('ctf_entries')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(10) as { data: CtfEntryRow[] | null };
+    .limit(25) as { data: CtfEntryRow[] | null };
 
   const currentMonth = progress?.current_month || 1;
   const monthData = getMonthData(currentMonth);
@@ -72,20 +71,9 @@ export default async function Dashboard() {
     generation_date: (t as { generation_date?: string }).generation_date ?? undefined,
   }));
 
-  const doneTasks = taskList.filter((t) => t.status === 'done');
-  const monthsWithCompletedTasks = [...new Set(doneTasks.map((t) => t.month))];
-  const monthsCompleted = monthsWithCompletedTasks.length;
-
-  const journeyStats = {
-    streakCurrent: progress?.streak_current || 0,
-    hackXP: pillarXP.HACK || 0,
-    ctfSolvedCount: (ctfEntries || []).filter((e) => e.solved).length,
-    tasksCompletedCount: doneTasks.length,
-    logsCount: (logs || []).length,
-    winsCount: (logs || []).filter((l) => l.is_win).length,
-    monthsCompleted,
-    currentMonth,
-  };
+  const currentMonthTasks = taskList.filter((t) => t.month === currentMonth);
+  const monthTotalTasks = currentMonthTasks.length;
+  const monthCompletedTasks = currentMonthTasks.filter((t) => t.status === 'done').length;
 
   return (
     <div className="min-h-screen text-zinc-200 animate-page-enter">
@@ -109,37 +97,35 @@ export default async function Dashboard() {
         />
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* ─── Header ─── */}
         <header className="mb-8">
           <div className="hud-frame p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2.5">
                   <span className="w-1.5 h-1.5 rounded-sm bg-zinc-600" />
-                  <span className="font-mono text-[10px] text-zinc-600 tracking-widest uppercase">era-os · operational interface</span>
+                  <span className="subsystem-marker">era-os · operational interface</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <h1 className="terminal-heading font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight">
                     OPERATIONAL BRIEFING
                   </h1>
                 </div>
-                <p className="font-mono text-sm text-zinc-600 mt-2 ml-0">
+                <p className="font-mono text-sm text-zinc-600 mt-1.5 ml-0">
                   Roadmap-aware operations terminal
                 </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-3 shrink-0">
                 <Link href="/import">
-                  <Button variant="secondary" size="sm" className="hidden sm:flex border-zinc-700/60">
-                    <span className="text-zinc-500 mr-1">+</span> Load Blueprint
+                  <Button variant="secondary" size="sm">
+                    + Load Blueprint
                   </Button>
                 </Link>
-                <Link
-                  href="/roadmap"
-                  className="font-mono text-sm text-zinc-500 hover:text-zinc-200 border border-zinc-700/60 px-4 py-2.5 rounded-md hover:bg-zinc-800/50 transition-all duration-150 flex items-center gap-2"
-                >
-                  <span className="text-zinc-600">{'→'}</span>
-                  Strategic View
+                <Link href="/roadmap">
+                  <Button variant="outline" size="sm">
+                    Strategic View
+                  </Button>
                 </Link>
               </div>
             </div>
@@ -178,30 +164,17 @@ export default async function Dashboard() {
             streakCurrent={progress?.streak_current || 0}
             pillarXP={pillarXP}
             totalTasks={taskList.length}
-            completedTasks={doneTasks.length}
+            completedTasks={taskList.filter(t => t.status === 'done').length}
           />
         </div>
 
-        {/* ─── Journey Status ─── */}
+        {/* ─── Phase Progression ─── */}
         <div className="mb-8">
-          <Card className="border-zinc-800/40">
-            <CardContent className="py-5">
-              <JourneyStatus stats={journeyStats} compact />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ─── Monthly Progress ─── */}
-        <div className="mb-8">
-          <MonthlyProgressGrid currentMonth={currentMonth} tasks={taskList} />
-        </div>
-
-        {/* ─── Charts: XP + Productivity ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <XPBarChart pillarXP={pillarXP} />
-          <ProductivitySummary
-            tasks={taskList}
-            streakCurrent={progress?.streak_current || 0}
+          <MonthProgression
+            currentMonth={currentMonth}
+            monthTitle={monthData?.title || `Month ${currentMonth}`}
+            totalTasks={monthTotalTasks}
+            completedTasks={monthCompletedTasks}
           />
         </div>
 
@@ -216,6 +189,8 @@ export default async function Dashboard() {
           <DashboardInsights
             tasks={taskList}
             pillarXP={pillarXP}
+            currentMonth={currentMonth}
+            streakCurrent={progress?.streak_current || 0}
           />
         </div>
 
@@ -224,40 +199,54 @@ export default async function Dashboard() {
           <PillarProgress pillarXP={pillarXP} />
         </div>
 
-        {/* ─── Log + CTF ─── */}
+        {/* ─── Operational History (Log + CTF) ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-3">
-                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                  Session Log
-                </h2>
+              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                Session Log
+              </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <LearningLogForm />
-              <div className="pt-4 border-t border-zinc-800/60">
-                <LearningTimeline logs={(logs || []) as LogRow[]} />
-              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-                <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
-                  Security Log
-                </h2>
+              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                Security Log
+              </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <CTFForm />
-              <div className="pt-4 border-t border-zinc-800/60">
-                <CTFList entries={(ctfEntries || []) as CtfEntryRow[]} />
-              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-8">
+          <Card>
+            <CardHeader className="pb-3">
+              <h2 className="font-mono text-xs text-zinc-400 uppercase tracking-wider">
+                Operational History
+              </h2>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <OperationalTimeline
+                logs={(logs || []) as LogRow[]}
+                ctfEntries={(ctfEntries || []) as CtfEntryRow[]}
+              />
             </CardContent>
           </Card>
         </div>
 
         {/* ─── Operations ─── */}
         <div className="mb-8">
-          <OperationsList tasks={taskList} />
+          <OperationsList
+            tasks={taskList}
+            currentMonth={currentMonth}
+            monthTitle={monthData?.title || `Month ${currentMonth}`}
+          />
         </div>
       </main>
     </div>

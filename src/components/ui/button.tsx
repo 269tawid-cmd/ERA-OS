@@ -13,9 +13,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={clsx(
-          'inline-flex items-center justify-center font-medium rounded-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#050505] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]',
+          'inline-flex items-center justify-center font-medium rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]',
           {
-            'bg-white text-black hover:bg-zinc-200 focus:ring-zinc-500': variant === 'primary',
+            'bg-zinc-700 text-zinc-200 border border-zinc-600 hover:bg-zinc-600 hover:border-zinc-500 focus:ring-zinc-500': variant === 'primary',
             'bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600 focus:ring-zinc-500': variant === 'secondary',
             'bg-zinc-800/50 text-zinc-300 border border-zinc-700/60 hover:bg-zinc-800 hover:border-zinc-600 focus:ring-zinc-500': variant === 'outline',
             'bg-transparent text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 focus:ring-zinc-500': variant === 'ghost',

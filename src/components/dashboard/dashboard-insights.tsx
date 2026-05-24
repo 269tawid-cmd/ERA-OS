@@ -2,124 +2,82 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui';
-import { PILLAR_ORDER } from '@/lib/constants';
+import { computeInsights } from '@/lib/ops-insights';
+import type { Insight } from '@/lib/ops-insights';
 import type { Task } from '@/types';
 
 interface DashboardInsightsProps {
   tasks: Task[];
   pillarXP: Record<string, number>;
+  currentMonth: number;
+  streakCurrent: number;
 }
 
-interface Insight {
-  type: 'strength' | 'weakness' | 'warning' | 'info';
-  message: string;
-  pillar?: string;
-}
+const CATEGORY_LABEL: Record<Insight['category'], string> = {
+  operational: 'Ops',
+  roadmap: 'Phase',
+  focus: 'Focus',
+  progress: 'Progress',
+};
 
-export function DashboardInsights({ tasks, pillarXP }: DashboardInsightsProps) {
-  const insights = useMemo(() => {
-    const computed: Insight[] = [];
+const CATEGORY_DOT: Record<Insight['category'], string> = {
+  operational: 'bg-zinc-500',
+  roadmap: 'bg-amber-500/50',
+  focus: 'bg-blue-400/50',
+  progress: 'bg-emerald-500/50',
+};
 
-    const totalXP = PILLAR_ORDER.reduce((sum, p) => sum + (pillarXP[p] || 0), 0);
-    const pillarPercentages = PILLAR_ORDER.map(p => ({
-      pillar: p,
-      xp: pillarXP[p] || 0,
-      percentage: totalXP > 0 ? ((pillarXP[p] || 0) / totalXP) * 100 : 0
-    }));
+const TONE_ICON: Record<Insight['tone'], string> = {
+  positive: '↑',
+  neutral: '→',
+  attention: '●',
+};
 
-    const sorted = [...pillarPercentages].sort((a, b) => a.percentage - b.percentage);
-    const weakest = sorted[0];
-    const strongest = sorted[sorted.length - 1];
-
-    if (weakest.percentage > 0 && weakest.percentage < 20) {
-      computed.push({
-        type: 'weakness',
-        message: `${weakest.pillar} needs attention — ${Math.round(weakest.percentage)}% of XP`,
-        pillar: weakest.pillar
-      });
-    }
-
-    if (strongest.percentage > 50) {
-      computed.push({
-        type: 'strength',
-        message: `${strongest.pillar} dominates — ${Math.round(strongest.percentage)}% of XP`,
-        pillar: strongest.pillar
-      });
-    }
-
-    const now = new Date();
-    const overdueTasks = tasks.filter(t => {
-      if (t.status === 'done' || t.status === 'abandoned') return false;
-      if (!t.due_date) return false;
-      return new Date(t.due_date) < now;
-    });
-
-    if (overdueTasks.length > 0) {
-      computed.push({
-        type: 'warning',
-        message: `${overdueTasks.length} overdue task${overdueTasks.length > 1 ? 's' : ''}`
-      });
-    }
-
-    const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
-    const doneCount = tasks.filter(t => t.status === 'done').length;
-
-    if (tasks.length > 0 && doneCount / tasks.length > 0.7) {
-      computed.push({
-        type: 'info',
-        message: `${Math.round((doneCount / tasks.length) * 100)}% completion — solid momentum`
-      });
-    }
-
-    if (inProgressCount > 3) {
-      computed.push({
-        type: 'warning',
-        message: `${inProgressCount} tasks in progress — finish some first`
-      });
-    }
-
-    if (tasks.length === 0) {
-      computed.push({
-        type: 'info',
-        message: 'Create tasks for your current roadmap phase'
-      });
-    }
-
-    return computed;
-  }, [tasks, pillarXP]);
-
-  const typeStyles = {
-    strength: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5',
-    weakness: 'text-amber-400 border-amber-500/20 bg-amber-500/5',
-    warning: 'text-orange-400 border-orange-500/20 bg-orange-500/5',
-    info: 'text-blue-400 border-blue-500/20 bg-blue-500/5',
-  };
-
-  const typeIcons: Record<string, string> = {
-    strength: '↑',
-    weakness: '↓',
-    warning: '!',
-    info: '→',
-  };
+export function DashboardInsights({ tasks, pillarXP, currentMonth, streakCurrent }: DashboardInsightsProps) {
+  const insights = useMemo(
+    () => computeInsights({ tasks, pillarXP, currentMonth, streakCurrent }),
+    [tasks, pillarXP, currentMonth, streakCurrent],
+  );
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
-        <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">Operational Intel</h3>
+        <h3 className="font-mono text-xs text-zinc-400 uppercase tracking-widest">
+          Operational Intel
+        </h3>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-0">
         {insights.length === 0 ? (
-          <p className="font-mono text-sm text-zinc-500">Complete tasks to generate insights</p>
+          <p className="font-mono text-sm text-zinc-600">
+            Complete tasks to generate operational insights
+          </p>
         ) : (
-          insights.map((insight, i) => (
-            <div
-              key={i}
-              className={`font-mono text-sm p-3 rounded border ${typeStyles[insight.type]}`}
-            >
-              <span className="mr-2 opacity-70">{typeIcons[insight.type]}</span>
-              {insight.message}
-            </div>
-          ))
+          <div className="divide-y divide-zinc-800/15">
+            {insights.map((insight) => {
+              const toneOpacity = insight.tone === 'attention'
+                ? 'text-zinc-300'
+                : insight.tone === 'positive'
+                  ? 'text-zinc-400'
+                  : 'text-zinc-500';
+
+              return (
+                <div
+                  key={insight.id}
+                  className="flex items-start gap-2.5 py-2.5 first:pt-0 last:pb-0"
+                >
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${CATEGORY_DOT[insight.category]}`}
+                  />
+                  <span className={`font-mono text-xs flex-1 min-w-0 leading-relaxed ${toneOpacity}`}>
+                    {insight.message}
+                  </span>
+                  <span className="font-mono text-[9px] text-zinc-700 uppercase tracking-wider shrink-0 mt-0.5">
+                    {CATEGORY_LABEL[insight.category]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>

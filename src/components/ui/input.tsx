@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-zinc-400 mb-2">
+          <label htmlFor={inputId} className="block font-mono text-xs text-zinc-400 uppercase tracking-wider mb-2">
             {label}
           </label>
         )}
@@ -22,7 +22,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           className={clsx(
             'w-full px-4 py-3 bg-zinc-950 border border-zinc-700/80 rounded-lg text-zinc-200 text-base placeholder:text-zinc-500 transition-all duration-150 command-input edge-glow',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-offset-[#050505] focus:border-amber-500/40 focus:ring-amber-500/20',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:ring-offset-[#050505] focus:border-amber-500/40 focus:ring-amber-500/20',
             error
               ? 'border-red-500/60 focus:ring-red-500/30'
               : 'hover:border-zinc-600',

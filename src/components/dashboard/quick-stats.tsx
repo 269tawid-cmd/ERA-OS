@@ -26,7 +26,7 @@ export function QuickStats({
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card className="overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card hover className="overflow-hidden">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Phase</p>
           <p className="font-mono text-base sm:text-lg font-semibold text-zinc-100 truncate">
@@ -42,7 +42,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card hover className="overflow-hidden">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Continuity</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
@@ -59,7 +59,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card hover className="overflow-hidden">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-2">Operations</p>
           <p className="font-mono text-3xl font-bold text-zinc-100">
@@ -76,7 +76,7 @@ export function QuickStats({
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden transition-all duration-150 hover:border-zinc-700/60">
+      <Card hover className="overflow-hidden">
         <CardContent className="py-5 px-5">
           <p className="font-mono text-sm text-zinc-500 uppercase tracking-wider mb-3">Domain Value</p>
           <div className="space-y-2.5">

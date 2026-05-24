@@ -45,8 +45,9 @@ export function CTFList({ entries: initialEntries }: CTFListProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="font-mono text-xs text-zinc-600 text-center py-6">
-        No CTF entries yet. Start capturing flags!
+      <div className="text-center py-8">
+        <span className="font-mono text-xs text-zinc-500">No security events recorded</span>
+        <p className="font-mono text-[10px] text-zinc-600 mt-1.5">Log your first CTF capture above</p>
       </div>
     );
   }

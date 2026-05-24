@@ -36,7 +36,7 @@ export function QuickCreate({ defaultMonth = 1, onCreated }: QuickCreateProps) {
 
     setLoading(true);
     try {
-      await createTask({
+      const result = await createTask({
         title: title.trim(),
         pillar,
         month: defaultMonth,
@@ -44,16 +44,20 @@ export function QuickCreate({ defaultMonth = 1, onCreated }: QuickCreateProps) {
         xp_value: XP_VALUES[priority],
       });
 
-      setTitle('');
-      setPillar('HACK');
-      setPriority('medium');
+      if (!result.success) {
+        console.error('Failed to create task:', result.error);
+        return;
+      }
 
       const def = ACTION_ACKNOWLEDGMENTS.taskCreated;
       if (def.message) acknowledge(def.message, def.weight);
+      setTitle('');
+      setPillar('HACK');
+      setPriority('medium');
       onCreated?.();
       router.refresh();
     } catch (err) {
-      console.error('Failed to create task:', err);
+      console.error('Unexpected error creating task:', err);
     } finally {
       setLoading(false);
     }
@@ -111,7 +115,7 @@ export function QuickCreate({ defaultMonth = 1, onCreated }: QuickCreateProps) {
               <select
                 value={pillar}
                 onChange={(e) => setPillar(e.target.value as Pillar)}
-                className="bg-zinc-800/60 border border-zinc-700/50 rounded text-xs font-mono text-zinc-400 px-2 py-1 outline-none focus:border-zinc-600/60 transition-colors"
+                className="bg-zinc-950 border border-zinc-700/80 rounded-lg text-xs font-mono text-zinc-400 px-2 py-1.5 outline-none transition-colors duration-150 hover:border-zinc-600 focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20"
               >
                 {PILLAR_ORDER.map((p) => (
                   <option key={p} value={p}>{p}</option>
@@ -123,7 +127,7 @@ export function QuickCreate({ defaultMonth = 1, onCreated }: QuickCreateProps) {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
-                className="bg-zinc-800/60 border border-zinc-700/50 rounded text-xs font-mono text-zinc-400 px-2 py-1 outline-none focus:border-zinc-600/60 transition-colors"
+                className="bg-zinc-950 border border-zinc-700/80 rounded-lg text-xs font-mono text-zinc-400 px-2 py-1.5 outline-none transition-colors duration-150 hover:border-zinc-600 focus:border-amber-500/40 focus:ring-1 focus:ring-amber-500/20"
               >
                 {Object.entries(PRIORITIES).map(([value, { label }]) => (
                   <option key={value} value={value}>{label} ({XP_VALUES[value as Priority]} XP)</option>

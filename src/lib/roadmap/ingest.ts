@@ -7,10 +7,28 @@ import type {
 } from './schema';
 
 const PILLAR_KEYWORDS: Record<Pillar, string[]> = {
-  HACK: ['ctf', 'hack', 'pentest', 'vulnerability', 'dvwa', 'owasp', 'metasploit', 'exploit', 'burp', 'nmap', 'privesc', 'attack', 'scan'],
-  BUILD: ['build', 'script', 'tool', 'python', 'project', 'automation', 'create', 'write', 'code'],
-  AI: ['ai', 'llm', 'gemini', 'automation', 'gpt', 'model'],
-  PRESENCE: ['blog', 'write', 'document', 'report', 'note', 'publish', 'share'],
+  HACK: ['ctf', 'hack', 'pentest', 'pentesting', 'penetration', 'vulnerability', 'dvwa', 'owasp',
+         'metasploit', 'exploit', 'burp', 'nmap', 'privesc', 'privilege', 'attack', 'scan',
+         'recon', 'enumeration', 'foothold', 'webapp', 'xss', 'sqli', 'sql injection', 'csrf',
+         'injection', 'brute', 'crack', 'forensic', 'reverse', 'binary', 'pwn', 'crypto'],
+  BUILD: ['build', 'script', 'tool', 'python', 'project', 'automation', 'create', 'write', 'code',
+          'develop', 'implement', 'construct', 'assemble', 'compile', 'deploy', 'configure',
+          'linux', 'bash', 'shell', 'docker', 'git', 'github', 'api', 'backend', 'frontend'],
+  AI: ['ai', 'llm', 'gemini', 'gpt', 'model', 'nlp', 'neural', 'machine learning', 'ml',
+       'openai', 'anthropic', 'claude', 'chatgpt', 'automation', 'prompt', 'rag', 'vector'],
+  PRESENCE: ['blog', 'write', 'document', 'report', 'note', 'publish', 'share', 'cv', 'resume',
+             'portfolio', 'linkedin', 'twitter', 'x.com', 'social', 'present', 'speak', 'teach',
+             'mentor', 'community', 'youtube', 'video', 'article', 'post'],
+};
+
+const CATEGORY_KEYWORDS: Record<TaskCategory, string[]> = {
+  practice: ['practice', 'drill', 'exercise', 'hands-on', 'try', 'experiment', 'explore'],
+  learning: ['learn', 'study', 'understand', 'read', 'watch', 'course', 'tutorial', 'video', 'book'],
+  project: ['build', 'create', 'make', 'develop', 'implement', 'construct', 'project', 'portfolio'],
+  review: ['review', 'analyze', 'examine', 'audit', 'assess', 'evaluate', 'check'],
+  ctf: ['ctf', 'capture', 'flag', 'challenge', 'hackthebox', 'tryhackme', 'picoctf', 'vulnhub', 'cyberchef'],
+  documentation: ['document', 'note', 'write', 'blog', 'report', 'journal', 'writeup', 'write up'],
+  automation: ['script', 'automate', 'tool', 'scanner', 'scripting', 'bash', 'python script'],
 };
 
 export function inferPillar(text: string): Pillar {
